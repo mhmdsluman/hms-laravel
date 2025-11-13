@@ -14,10 +14,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('bills', function (Blueprint $table) {
-            $table->decimal('discount_amount', 10, 2)->default(0.00)->after('patient_co_pay');
-            $table->string('discount_reason')->nullable()->after('discount_amount');
-        });
+        if (!Schema::hasColumn('bills', 'discount_amount')) {
+            Schema::table('bills', function (Blueprint $table) {
+                $table->decimal('discount_amount', 10, 2)->default(0.00)->after('patient_co_pay');
+                $table->string('discount_reason')->nullable()->after('discount_amount');
+            });
+        }
     }
 
     /**
@@ -25,8 +27,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('bills', function (Blueprint $table) {
-            $table->dropColumn(['discount_amount', 'discount_reason']);
-        });
+        if (Schema::hasColumn('bills', 'discount_amount')) {
+            Schema::table('bills', function (Blueprint $table) {
+                $table->dropColumn(['discount_amount', 'discount_reason']);
+            });
+        }
     }
 };

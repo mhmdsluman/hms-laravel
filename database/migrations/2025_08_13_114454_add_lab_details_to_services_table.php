@@ -11,10 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->string('specimen_type')->nullable()->after('department');
-            $table->string('units')->nullable()->after('specimen_type');
-        });
+        if (!Schema::hasColumn('services', 'specimen_type')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->string('specimen_type')->nullable()->after('department');
+            });
+        }
+        if (!Schema::hasColumn('services', 'units')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->string('units')->nullable()->after('specimen_type');
+            });
+        }
     }
 
     /**
@@ -22,8 +28,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->dropColumn(['specimen_type', 'units']);
-        });
+        if (Schema::hasColumn('services', 'specimen_type')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->dropColumn('specimen_type');
+            });
+        }
+        if (Schema::hasColumn('services', 'units')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->dropColumn('units');
+            });
+        }
     }
 };

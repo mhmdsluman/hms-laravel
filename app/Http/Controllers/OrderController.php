@@ -6,14 +6,22 @@ use App\Models\Appointment;
 use App\Models\Bill;
 use App\Models\Order;
 use App\Models\Service;
+use App\Services\ClinicalDecisionSupportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    protected $cdss;
+
+    public function __construct(ClinicalDecisionSupportService $cdss)
+    {
+        $this->cdss = $cdss;
+    }
     /**
      * Store a new order for an appointment and update/create the associated bill.
      *
@@ -45,6 +53,27 @@ class OrderController extends Controller
                 throw ValidationException::withMessages([
                     'service_ids' => "The medication/service '{$service->name}' is restricted."
                 ]);
+            }
+        }
+
+        // CDSS Checks (Drug Interactions and Allergies)
+        $patient = $appointment->patient;
+        $orderedRxcuis = $services->whereNotNull('rxcui')->pluck('rxcui')->toArray();
+        $patientMedications = $patient->medications()->whereNotNull('rxcui')->pluck('rxcui')->toArray();
+        $allRxcuis = array_merge($orderedRxcuis, $patientMedications);
+
+        if (count($allRxcuis) > 1) {
+            $interactionResponse = $this->cdss->checkDrugInteractions($allRxcuis);
+            if ($interactionResponse->successful() && !empty($interactionResponse->json())) {
+                Log::warning('Drug-drug interactions found for patient ' . $patient->id, $interactionResponse->json());
+                // In a real application, you would display a warning to the user here.
+            }
+        }
+
+        foreach ($services as $service) {
+            if ($patient->allergies->contains('name', $service->name)) {
+                Log::warning('Patient ' . $patient->id . ' has a known allergy to ' . $service->name);
+                // In a real application, you would display a warning to the user here.
             }
         }
 

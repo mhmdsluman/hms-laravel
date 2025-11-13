@@ -16,9 +16,8 @@ use App\Http\Controllers\FormularyController;
 use App\Http\Controllers\InsuranceContractController;
 use App\Http\Controllers\InsurancePolicyController;
 use App\Http\Controllers\InsuranceProviderController;
-use App\Http\Controllers\InventoryItemController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LabController;
-use App\Http\Controllers\LabInventoryController;
 use App\Http\Controllers\LabResultController;
 use App\Http\Controllers\MedicationAdministrationController;
 use App\Http\Controllers\MessageController;
@@ -141,15 +140,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/orders/{orderItem}/results', [LabResultController::class, 'create'])->name('results.create');
         Route::post('/orders/{orderItem}/results', [LabResultController::class, 'store'])->name('results.store');
         Route::post('/results/{labResult}/verify', [LabResultController::class, 'verify'])->name('results.verify');
-        Route::resource('inventory', LabInventoryController::class, ['as' => '']);
     });
 
     // Pharmacy
     Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
         Route::get('/', [PharmacyController::class, 'index'])->name('index');
-        Route::get('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'create'])->name('dispense.create');
-        Route::post('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'store'])->name('dispense.store');
-        Route::resource('inventory', InventoryItemController::class, ['as' => '']);
+        Route.get('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'create'])->name('dispense.create');
+        Route.post('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'store'])->name('dispense.store');
     });
 
     // Radiology
@@ -182,6 +179,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('admin')->middleware('auth')->group(function () {
         Route::resource('users', UserController::class);
         Route::resource('services', ServiceController::class);
+        Route::resource('inventory', InventoryController::class);
         Route::resource('templates', TemplateController::class);
         Route::get('/audit-trail', [AuditLogController::class, 'index'])->name('audit.index');
         Route::resource('test-catalogue', TestCatalogueController::class);

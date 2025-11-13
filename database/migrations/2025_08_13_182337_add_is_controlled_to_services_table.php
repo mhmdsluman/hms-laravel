@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->boolean('is_controlled_substance')->default(false)->after('formulary_status');
-        });
+        if (!Schema::hasColumn('services', 'is_controlled_substance')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->boolean('is_controlled_substance')->default(false)->after('formulary_status');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->dropColumn('is_controlled_substance');
-        });
+        if (Schema::hasColumn('services', 'is_controlled_substance')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->dropColumn('is_controlled_substance');
+            });
+        }
     }
 };

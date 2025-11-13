@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->string('formulary_status')->nullable()->after('units')->comment('e.g., Formulary, Non-Formulary, Restricted');
-        });
+        if (!Schema::hasColumn('services', 'formulary_status')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->string('formulary_status')->nullable()->after('units')->comment('e.g., Formulary, Non-Formulary, Restricted');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->dropColumn('formulary_status');
-        });
+        if (Schema::hasColumn('services', 'formulary_status')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->dropColumn('formulary_status');
+            });
+        }
     }
 };

@@ -10,10 +10,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("
-            ALTER TABLE radiology_reports
-            MODIFY file_path VARCHAR(255) NULL COMMENT 'Path to the uploaded report file, e.g., PDF'
-        ");
+        // SQLite does not support MODIFY COLUMN comments.
     }
 
     /**
@@ -21,9 +18,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("
-            ALTER TABLE radiology_reports
-            MODIFY file_path VARCHAR(255) NULL COMMENT 'Path to the uploaded report file'
-        ");
+        // SQLite does not support MODIFY COLUMN comments.
     }
 };

@@ -11,10 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('clinical_notes', function (Blueprint $table) {
-            $table->foreignId('provisional_diagnosis_code_id')->nullable()->after('provisional_diagnosis')->constrained('diagnosis_codes');
-            $table->foreignId('final_diagnosis_code_id')->nullable()->after('final_diagnosis')->constrained('diagnosis_codes');
-        });
+        if (!Schema::hasColumn('clinical_notes', 'provisional_diagnosis_code_id')) {
+            Schema::table('clinical_notes', function (Blueprint $table) {
+                $table->foreignId('provisional_diagnosis_code_id')->nullable()->after('provisional_diagnosis')->constrained('diagnosis_codes');
+            });
+        }
+        if (!Schema::hasColumn('clinical_notes', 'final_diagnosis_code_id')) {
+            Schema::table('clinical_notes', function (Blueprint $table) {
+                $table->foreignId('final_diagnosis_code_id')->nullable()->after('final_diagnosis')->constrained('diagnosis_codes');
+            });
+        }
     }
 
     /**
@@ -22,10 +28,17 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('clinical_notes', function (Blueprint $table) {
-            $table->dropForeign(['provisional_diagnosis_code_id']);
-            $table->dropForeign(['final_diagnosis_code_id']);
-            $table->dropColumn(['provisional_diagnosis_code_id', 'final_diagnosis_code_id']);
-        });
+        if (Schema::hasColumn('clinical_notes', 'provisional_diagnosis_code_id')) {
+            Schema::table('clinical_notes', function (Blueprint $table) {
+                $table->dropForeign(['provisional_diagnosis_code_id']);
+                $table->dropColumn('provisional_diagnosis_code_id');
+            });
+        }
+        if (Schema::hasColumn('clinical_notes', 'final_diagnosis_code_id')) {
+            Schema::table('clinical_notes', function (Blueprint $table) {
+                $table->dropForeign(['final_diagnosis_code_id']);
+                $table->dropColumn('final_diagnosis_code_id');
+            });
+        }
     }
 };

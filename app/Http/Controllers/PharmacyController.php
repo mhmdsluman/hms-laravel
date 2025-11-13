@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Inventory;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,8 +23,11 @@ class PharmacyController extends Controller
             ->latest()
             ->get();
 
+        $inventory = Inventory::where('category', 'Pharmacy')->latest()->paginate(10);
+
         return Inertia::render('Pharmacy/Index', [
             'pendingOrders' => $pendingPharmacyOrders,
+            'inventory' => $inventory,
         ]);
     }
 }

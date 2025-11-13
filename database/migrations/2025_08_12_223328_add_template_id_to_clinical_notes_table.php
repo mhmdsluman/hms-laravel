@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('clinical_notes', function (Blueprint $table) {
-            $table->foreignId('template_id')->nullable()->after('clinician_id')->constrained('templates');
-        });
+        if (!Schema::hasColumn('clinical_notes', 'template_id')) {
+            Schema::table('clinical_notes', function (Blueprint $table) {
+                $table->foreignId('template_id')->nullable()->constrained('templates');
+            });
+        }
     }
 
     /**
@@ -21,9 +23,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('clinical_notes', function (Blueprint $table) {
-            $table->dropForeign(['template_id']);
-            $table->dropColumn('template_id');
-        });
+        if (Schema::hasColumn('clinical_notes', 'template_id')) {
+            Schema::table('clinical_notes', function (Blueprint $table) {
+                $table->dropForeign(['template_id']);
+                $table->dropColumn('template_id');
+            });
+        }
     }
 };
