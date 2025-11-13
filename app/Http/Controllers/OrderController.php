@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Bill;
+use App\Models\BillableEvent;
 use App\Models\Order;
 use App\Models\Service;
 use App\Services\ClinicalDecisionSupportService;
@@ -95,6 +96,13 @@ class OrderController extends Controller
                     'placer_order_number' => 'ORD-' . Str::upper(Str::random(5)) . '-' . $order->id,
                 ]);
 
+                // Create a billable event for the order item
+                BillableEvent::create([
+                    'patient_id' => $appointment->patient_id,
+                    'service_id' => $serviceId,
+                    'status'     => 'Pending',
+                ]);
+
                 // If the patient is currently admitted and the ordered service is a pharmacy item,
                 // auto-create a medication administration record on the current admission (MAR).
                 $patient = $appointment->patient()->with('currentAdmission')->first();
@@ -108,57 +116,6 @@ class OrderController extends Controller
                         ]);
                     }
                 }
-            }
-
-            // Billing logic: find or create a bill for this appointment
-            $bill = Bill::firstOrCreate(
-                ['appointment_id' => $appointment->id],
-                [
-                    'patient_id'   => $appointment->patient_id,
-                    'total_amount' => 0,
-                    'status'       => 'Unpaid',
-                ]
-            );
-
-            // Add newly ordered services to the bill.
-            // Prefer high-level addService() if model provides it, otherwise create bill items directly.
-            foreach ($services as $service) {
-                if (method_exists($bill, 'addService') && is_callable([$bill, 'addService'])) {
-                    // If Bill::addService handles quantity/pricing/relationships internally
-                    $bill->addService($service);
-                } elseif (method_exists($bill, 'items')) {
-                    // Fallback: create bill item record assuming bill->items() relation exists
-                    $unitPrice = $service->price ?? 0;
-                    $bill->items()->create([
-                        'service_id'  => $service->id,
-                        'quantity'    => 1,
-                        'unit_price'  => $unitPrice,
-                        'total_price' => $unitPrice * 1,
-                    ]);
-                } else {
-                    // As a last resort, accumulate into total_amount (will be persisted below)
-                    $bill->total_amount += ($service->price ?? 0);
-                }
-            }
-
-            // Recalculate totals: prefer model's recalculateTotals() if available
-            if (method_exists($bill, 'recalculateTotals') && is_callable([$bill, 'recalculateTotals'])) {
-                $bill->recalculateTotals();
-            } else {
-                // Compute sum from related bill items if relation exists
-                if (method_exists($bill, 'items')) {
-                    $sum = (float) $bill->items()->sum('total_price');
-                    $bill->total_amount = $sum;
-                    $bill->save();
-                } else {
-                    // If no items relation, ensure we persist whatever total_amount we have
-                    $bill->save();
-                }
-            }
-
-            // If the bill was previously marked Paid or Void, reset to Unpaid because new items were added
-            if (in_array($bill->status, ['Paid', 'Void'])) {
-                $bill->update(['status' => 'Unpaid']);
             }
         });
 

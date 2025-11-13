@@ -6,6 +6,7 @@ use App\Http\Controllers\AnesthesiaRecordController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BedController;
+use App\Http\Controllers\BillableEventController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\CarePlanController;
 use App\Http\Controllers\ClinicalNoteController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\PrintController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RadiologyController;
 use App\Http\Controllers\RadiologyReportController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\RadiologyScheduleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ShiftHandoverController;
@@ -145,8 +147,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Pharmacy
     Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
         Route::get('/', [PharmacyController::class, 'index'])->name('index');
-        Route.get('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'create'])->name('dispense.create');
-        Route.post('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'store'])->name('dispense.store');
+        Route::get('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'create'])->name('dispense.create');
+        Route::post('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'store'])->name('dispense.store');
     });
 
     // Radiology
@@ -177,9 +179,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Administration Panel
     Route::prefix('admin')->middleware('auth')->group(function () {
+        Route::get('settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('admin.settings');
+        Route::post('settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('admin.settings.update');
         Route::resource('users', UserController::class);
         Route::resource('services', ServiceController::class);
         Route::resource('inventory', InventoryController::class);
+        Route::resource('schedule', ScheduleController::class);
+        Route::resource('billable-events', BillableEventController::class)->only(['index', 'store']);
+        Route::post('billable-events/generate-bill', [BillableEventController::class, 'generateBill'])->name('admin.billable-events.generate-bill');
         Route::resource('templates', TemplateController::class);
         Route::get('/audit-trail', [AuditLogController::class, 'index'])->name('audit.index');
         Route::resource('test-catalogue', TestCatalogueController::class);

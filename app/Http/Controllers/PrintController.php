@@ -20,7 +20,11 @@ class PrintController extends Controller
             'verifier'
         ]);
 
-        $pdf = Pdf::loadView('reports.lab_result', ['result' => $labResult]);
+        $pdf = Pdf::loadView('reports.lab_result', [
+            'result' => $labResult,
+            'title' => 'Lab Result',
+            'patient' => $labResult->orderItem->order->patient,
+        ]);
 
         return $pdf->stream('lab-result-' . $labResult->id . '.pdf');
     }
@@ -36,7 +40,11 @@ class PrintController extends Controller
             'items.service',
         ]);
 
-        $pdf = Pdf::loadView('reports.bill_invoice', ['bill' => $bill]);
+        $pdf = Pdf::loadView('reports.bill_invoice', [
+            'bill' => $bill,
+            'title' => 'Bill Invoice',
+            'patient' => $bill->patient,
+        ]);
 
         return $pdf->stream('invoice-' . $bill->id . '.pdf');
     }
