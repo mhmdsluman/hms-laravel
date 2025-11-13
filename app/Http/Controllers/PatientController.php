@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Claim; // <-- Add this import
+use App\Models\Claim; // <-- Keep if used elsewhere
 use App\Models\InsuranceProvider;
 use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -70,13 +72,18 @@ class PatientController extends Controller
             'policy_number' => 'nullable|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
+            'photo' => 'nullable|image|max:2048',
         ]);
 
         $countryCode = Str::startsWith($validatedData['primary_phone_country_code'], '+')
             ? $validatedData['primary_phone_country_code']
             : '+' . $validatedData['primary_phone_country_code'];
+
+        // Use ltrim to remove leading zeros from the local phone number
         $localPhone = ltrim($validatedData['primary_phone'], '0');
         $fullPhoneNumber = $countryCode . $localPhone;
+
+        // Use the local phone number (without country code) for the password
         $defaultPassword = Hash::make($localPhone);
 
         $addresses = $validatedData['addresses'];
@@ -86,6 +93,12 @@ class PatientController extends Controller
             }
         }
 
+        // Handle File Upload
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('patient_photos', 'public');
+        }
+
         $patient = Patient::create([
             'first_name' => $validatedData['first_name'],
             'last_name' => $validatedData['last_name'],
@@ -93,9 +106,10 @@ class PatientController extends Controller
             'gender' => $validatedData['gender'],
             'primary_phone_country_code' => $countryCode,
             'primary_phone' => $fullPhoneNumber,
-            'email' => $validatedData['email'],
+            'email' => $validatedData['email'] ?? null,
             'addresses' => $addresses,
             'patient_portal_password_hash' => $defaultPassword,
+            'photo_capture_path' => $photoPath,
             'created_by_user_id' => Auth::id(),
             'updated_by_user_id' => Auth::id(),
             'uhid' => 'TEMP-' . time(),
@@ -104,12 +118,12 @@ class PatientController extends Controller
         $patient->uhid = 'HMS-A' . str_pad($patient->id, 7, '0', STR_PAD_LEFT);
         $patient->save();
 
-        if ($validatedData['insurance_provider_id'] && $validatedData['policy_number']) {
+        if (!empty($validatedData['insurance_provider_id']) && !empty($validatedData['policy_number'])) {
             $patient->insurancePolicies()->create([
                 'insurance_provider_id' => $validatedData['insurance_provider_id'],
                 'policy_number' => $validatedData['policy_number'],
-                'start_date' => $validatedData['start_date'],
-                'end_date' => $validatedData['end_date'],
+                'start_date' => $validatedData['start_date'] ?? null,
+                'end_date' => $validatedData['end_date'] ?? null,
             ]);
         }
 
@@ -191,7 +205,7 @@ class PatientController extends Controller
             'gender' => $validatedData['gender'],
             'primary_phone_country_code' => $countryCode,
             'primary_phone' => $fullPhoneNumber,
-            'email' => $validatedData['email'],
+            'email' => $validatedData['email'] ?? null,
             'addresses' => $addresses,
             'updated_by_user_id' => Auth::id(),
         ]);
@@ -233,6 +247,11 @@ class PatientController extends Controller
             return response()->json(['is_duplicate' => false]);
         }
 
+        // Only allow certain fields for safety
+        if (!in_array($field, ['email', 'primary_phone', 'uhid'])) {
+            return response()->json(['is_duplicate' => false]);
+        }
+
         $query = Patient::where($field, $value)->whereNull('deleted_at');
 
         if ($patientId) {
@@ -240,5 +259,66 @@ class PatientController extends Controller
         }
 
         return response()->json(['is_duplicate' => $query->exists()]);
+    }
+
+    /**
+     * Simple patient search endpoint used by the frontend autocomplete.
+     * GET /patients/search?query=...
+     */
+    public function search(Request $request)
+    {
+        // validate to avoid unexpected types / large payloads
+        $data = $request->validate([
+            'query' => 'nullable|string|max:100',
+        ]);
+
+        $raw = $data['query'] ?? '';
+        // remove control chars, collapse whitespace, trim
+        $query = trim(preg_replace('/\s+/', ' ', preg_replace('/[\x00-\x1F\x7F]+/', ' ', $raw)));
+
+        try {
+            if ($query === '') {
+                return response()->json([], 200);
+            }
+
+            // Escape backslash, percent and underscore for safe LIKE queries
+            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query);
+            $searchTerms = array_filter(explode(' ', $escaped), fn($t) => $t !== '');
+
+            $patientsQuery = Patient::query()
+                ->where(function ($q) use ($escaped, $searchTerms) {
+                    // Full string searches against UHID and phone using ESCAPE '\' (works in MySQL)
+                    $q->whereRaw("uhid LIKE ? ESCAPE '\\\\'", ["%{$escaped}%"])
+                      ->orWhereRaw("primary_phone LIKE ? ESCAPE '\\\\'", ["%{$escaped}%"]);
+
+                    // For names: require each term (AND) to match either first_name or last_name
+                    if (count($searchTerms) > 0) {
+                        $q->orWhere(function ($nameQuery) use ($searchTerms) {
+                            foreach ($searchTerms as $term) {
+                                $nameQuery->where(function ($sub) use ($term) {
+                                    $sub->whereRaw("first_name LIKE ? ESCAPE '\\\\'", ["%{$term}%"])
+                                        ->orWhereRaw("last_name LIKE ? ESCAPE '\\\\'", ["%{$term}%"]);
+                                });
+                            }
+                        });
+                    }
+                });
+
+            $patients = $patientsQuery
+                ->limit(30)
+                ->get(['id', 'first_name', 'last_name', 'uhid', 'primary_phone']);
+
+            return response()->json($patients, 200);
+        } catch (\Throwable $e) {
+            // log full exception so you can inspect stacktrace in storage/logs/laravel.log
+            Log::error('Patient search failed', [
+                'query_raw' => $raw ?? null,
+                'query_sanitized' => $query ?? null,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json(['message' => 'Server error while searching patients.'], 500);
+        }
     }
 }

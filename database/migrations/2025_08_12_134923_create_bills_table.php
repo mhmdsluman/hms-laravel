@@ -16,6 +16,10 @@ return new class extends Migration
             $table->foreignId('patient_id')->constrained('patients');
             $table->foreignId('appointment_id')->constrained('appointments');
             $table->decimal('total_amount', 10, 2);
+            $table->decimal('insurance_amount', 10, 2)->default(0.00);
+            $table->decimal('patient_co_pay', 10, 2)->default(0.00);
+            $table->decimal('discount_amount', 10, 2)->default(0.00);
+            $table->string('discount_reason')->nullable();
             $table->decimal('paid_amount', 10, 2)->default(0.00);
             $table->string('status'); // e.g., 'Draft', 'Unpaid', 'Paid', 'Void'
             $table->timestamps();

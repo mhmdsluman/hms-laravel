@@ -20,7 +20,9 @@ class Patient extends Model
         'primary_phone_country_code', 'secondary_phone', 'email', 'preferred_contact_method',
         'addresses', 'next_of_kin', 'allergies', 'past_medical_history',
         'surgical_history', 'family_history', 'immunization_history', 'consent_flags',
-        'legal_flags', 'photo_capture_path', 'created_by_user_id', 'updated_by_user_id',
+        'legal_flags',
+        'photo_capture_path', // <-- ALREADY EXISTS, ENSURE IT'S HERE
+        'created_by_user_id', 'updated_by_user_id',
     ];
 
     protected $casts = [
@@ -43,7 +45,7 @@ class Patient extends Model
      *
      * @var array
      */
-    protected $appends = ['age'];
+    protected $appends = ['age', 'photo_url']; // <-- ADDED 'photo_url'
 
     // ... existing relationships ...
     public function vitals(): HasMany { return $this->hasMany(Vital::class)->latest(); }
@@ -63,5 +65,20 @@ class Patient extends Model
     public function getAgeAttribute(): int
     {
         return Carbon::parse($this->attributes['date_of_birth'])->age;
+    }
+
+    /**
+     * Get the patient's photo URL.
+     *
+     * @return string
+     */
+    public function getPhotoUrlAttribute()
+    {
+        if ($this->photo_capture_path) {
+            return asset('storage/' . $this->photo_capture_path);
+        }
+
+        // Default avatar
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->first_name . ' ' . $this->last_name) . '&color=7F9CF5&background=EBF4FF';
     }
 }

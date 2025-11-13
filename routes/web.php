@@ -17,8 +17,8 @@ use App\Http\Controllers\InsuranceContractController;
 use App\Http\Controllers\InsurancePolicyController;
 use App\Http\Controllers\InsuranceProviderController;
 use App\Http\Controllers\InventoryItemController;
-use App\Http\Controllers\LabInventoryController;
 use App\Http\Controllers\LabController;
+use App\Http\Controllers\LabInventoryController;
 use App\Http\Controllers\LabResultController;
 use App\Http\Controllers\MedicationAdministrationController;
 use App\Http\Controllers\MessageController;
@@ -43,164 +43,177 @@ use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\TestCatalogueController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VitalController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
-use Inertia\Inertia;
 
-Route::get('/language/{locale}', function ($locale) {
-    if (in_array($locale, ['en', 'ar'])) {
-        Session::put('locale', $locale);
-    }
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group.
+|
+*/
+// TEMP debug route - remove after debugging
+Route::get('/debug/patients/search', [App\Http\Controllers\PatientController::class, 'search']);
+
+// Language Switcher Route
+Route::get('language/{locale}', function ($locale) {
+    Session::put('locale', $locale);
     return redirect()->back();
-});
+})->name('language.switch');
 
+// Public/Guest Routes
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('login');
 });
 
-Route::get('/dashboard', DashboardController::class)
-    ->middleware(['auth', 'verified'])->name('dashboard');
+// Main Authenticated Application Routes
+Route::middleware(['auth', 'verified'])->group(function () {
 
-Route::middleware('auth')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Patients
-    Route::resource('patients', PatientController::class);
+    // Patient Registration & Management
+    Route::get('/patients/search', [PatientController::class, 'search'])->name('patients.search');
     Route::post('/patients/check-duplicate', [PatientController::class, 'checkDuplicate'])->name('patients.checkDuplicate');
+    Route::resource('patients', PatientController::class);
 
-    // Appointments
-    Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
-    Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
-    Route::patch('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.updateStatus');
+    // Appointments & Vitals
+    Route::resource('appointments', AppointmentController::class)->except(['show']);
+    Route::put('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.updateStatus');
+    Route::resource('appointments.vitals', VitalController::class)->shallow()->only(['create', 'store']);
 
-    // Vitals & Clinical Notes
-    Route::get('/appointments/{appointment}/vitals/create', [VitalController::class, 'create'])->name('vitals.create');
-    Route::post('/appointments/{appointment}/vitals', [VitalController::class, 'store'])->name('vitals.store');
-    Route::get('/appointments/{appointment}/consultation', [ClinicalNoteController::class, 'create'])->name('clinical-notes.create');
-    Route::post('/appointments/{appointment}/consultation', [ClinicalNoteController::class, 'store'])->name('clinical-notes.store');
-
-    // Orders
-    Route::post('/appointments/{appointment}/orders', [OrderController::class, 'store'])->name('orders.store');
-
-    // Services
-    Route::resource('services', ServiceController::class);
-
-    // Laboratory
-    Route::get('/laboratory', [LabController::class, 'index'])->name('lab.index');
-    Route::patch('/laboratory/orders/{orderItem}/status', [LabController::class, 'updateStatus'])->name('lab.updateStatus');
-    Route::get('/lab/orders/{orderItem}/result/create', [LabResultController::class, 'create'])->name('lab-results.create');
-    Route::post('/lab/orders/{orderItem}/result', [LabResultController::class, 'store'])->name('lab-results.store');
-    Route::patch('/lab/results/{labResult}/verify', [LabResultController::class, 'verify'])->name('lab-results.verify');
-
-      // Lab Inventory Route (for Lab/Admins)
-    Route::resource('lab-inventory', LabInventoryController::class)->except(['show']);
-
-    // Pharmacy
-    Route::get('/pharmacy', [PharmacyController::class, 'index'])->name('pharmacy.index');
-    Route::get('/pharmacy/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'create'])->name('dispensations.create');
-    Route::post('/pharmacy/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'store'])->name('dispensations.store');
-    Route::resource('inventory', InventoryItemController::class);
-
-    // Radiology
-    Route::get('/radiology', [RadiologyController::class, 'index'])->name('radiology.index');
-    Route::get('/radiology/orders/{orderItem}/report/create', [RadiologyReportController::class, 'create'])->name('radiology-reports.create');
-    Route::post('/radiology/orders/{orderItem}/report', [RadiologyReportController::class, 'store'])->name('radiology-reports.store');
-    Route::get('/radiology/orders/{orderItem}/schedule', [RadiologyScheduleController::class, 'create'])->name('radiology-schedule.create');
-    Route::post('/radiology/orders/{orderItem}/schedule', [RadiologyScheduleController::class, 'store'])->name('radiology-schedule.store');
-
-    // Billing Routes (merged)
-    Route::get('/billing', [BillController::class, 'index'])->name('billing.index');
-    Route::get('/billing/{bill}', [BillController::class, 'show'])->name('bills.show');
-    Route::get('/billing/{bill}', [BillController::class, 'show'])
-    ->name('billing.show')
-    ->middleware('auth');
-    Route::post('/billing/{bill}/discount', [BillController::class, 'applyDiscount'])
-    ->name('billing.discount')
-    ->middleware('auth');
-    Route::post('/appointments/{appointment}/bills', [BillController::class, 'store'])->name('bills.store');
-    Route::patch('/billing/{bill}/payment', [BillController::class, 'recordPayment'])->name('bills.recordPayment');
-    Route::patch('/billing/{bill}/discount', [BillController::class, 'applyDiscount'])->name('bills.applyDiscount');
-    Route::delete('/billing/{bill}', [BillController::class, 'destroy'])->name('bills.destroy');
-
-    // routes/web.php
-Route::post('/billing/{bill}/pay', [\App\Http\Controllers\BillController::class, 'recordPayment'])->name('billing.pay');
-Route::delete('/billing/{bill}', [\App\Http\Controllers\BillController::class, 'destroy'])->name('billing.destroy');
-
-    // IPD & Admissions
-    Route::get('/ipd', [BedController::class, 'index'])->name('ipd.index');
-    Route::get('/admissions/create', [AdmissionController::class, 'create'])->name('admissions.create');
-    Route::post('/admissions', [AdmissionController::class, 'store'])->name('admissions.store');
-    Route::patch('/admissions/{admission}/discharge', [AdmissionController::class, 'discharge'])->name('admissions.discharge');
-
-    Route::get('/admissions/{admission}/mar', [MedicationAdministrationController::class, 'show'])->name('mar.show');
-    Route::patch('/mar/{medicationAdministration}', [MedicationAdministrationController::class, 'update'])->name('mar.update');
-
-    // Nursing & Care Plans
-    Route::get('/nursing-station', [NursingStationController::class, 'index'])->name('nursing.index');
-    Route::get('/admissions/{admission}/nursing-notes/create', [NursingNoteController::class, 'create'])->name('nursing-notes.create');
-    Route::post('/admissions/{admission}/nursing-notes', [NursingNoteController::class, 'store'])->name('nursing-notes.store');
-    Route::get('/admissions/{admission}/care-plan', [CarePlanController::class, 'show'])->name('care-plans.show');
-    Route::post('/admissions/{admission}/care-plan', [CarePlanController::class, 'store'])->name('care-plans.store');
-    Route::get('/admissions/{admission}/shift-handover/create', [ShiftHandoverController::class, 'create'])->name('shift-handovers.create');
-    Route::post('/admissions/{admission}/shift-handover', [ShiftHandoverController::class, 'store'])->name('shift-handovers.store');
-
-    // Users & Admin
-    Route::resource('users', UserController::class);
-    Route::get('/admin/audit-trail', [AuditLogController::class, 'index'])->name('audit.index');
-    Route::resource('templates', TemplateController::class);
-    Route::get('/admin/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
-
-    // Test Catalogue & Order Sets
-    Route::resource('test-catalogue', TestCatalogueController::class)->parameters(['test-catalogue' => 'service']);
-    Route::resource('order-sets', OrderSetController::class);
+    // Consultation (Clinical Notes, Orders)
+    Route::get('/consultation/{appointment}', [ClinicalNoteController::class, 'create'])->name('consultation.create');
+    Route::post('/consultation/{appointment}', [ClinicalNoteController::class, 'store'])->name('consultation.store');
+    Route::post('/consultation/{appointment}/orders', [OrderController::class, 'store'])->name('orders.store');
     Route::get('/diagnosis-codes', [DiagnosisCodeController::class, 'index'])->name('diagnosis-codes.index');
 
-    // Formulary & Insurance
-    Route::resource('formulary', FormularyController::class)->only(['index', 'edit', 'update'])->parameters(['formulary' => 'service']);
-    Route::resource('insurance-providers', InsuranceProviderController::class);
-    Route::resource('insurance-policies', InsurancePolicyController::class)->except(['index', 'show']);
-    Route::get('/insurance-contracts/{provider}/edit', [InsuranceContractController::class, 'edit'])->name('insurance-contracts.edit');
-    Route::put('/insurance-contracts/{provider}', [InsuranceContractController::class, 'update'])->name('insurance-contracts.update');
+    // Billing
+    Route::resource('billing', BillController::class)->except(['store', 'create', 'edit', 'update']);
+    Route::post('/appointments/{appointment}/generate-bill', [BillController::class, 'store'])->name('billing.store');
+    Route::post('/billing/{bill}/payment', [BillController::class, 'recordPayment'])->name('billing.recordPayment');
+    Route::post('/billing/{bill}/discount', [BillController::class, 'applyDiscount'])->name('billing.applyDiscount');
 
-    // Emergency
+    // Insurance Policies (Standalone management for a specific patient)
+    Route::resource('insurance-policies', InsurancePolicyController::class)->except(['index', 'show']);
+
+    // Emergency Department
     Route::get('/emergency', [EmergencyController::class, 'index'])->name('emergency.index');
     Route::get('/emergency/register', [EmergencyController::class, 'create'])->name('emergency.create');
     Route::post('/emergency/register', [EmergencyController::class, 'store'])->name('emergency.store');
 
-    // Operating Theater & OT Notes
-    Route::get('/ot', [OperatingTheaterController::class, 'index'])->name('ot.index');
-    Route::get('/ot/schedule/{orderItem}', [OperatingTheaterController::class, 'create'])->name('ot.create');
-    Route::post('/ot/schedule/{orderItem}', [OperatingTheaterController::class, 'store'])->name('ot.store');
-    Route::get('/ot/notes/{orderItem}/create', [OperativeNoteController::class, 'create'])->name('operative-notes.create');
-    Route::post('/ot/notes/{orderItem}', [OperativeNoteController::class, 'store'])->name('operative-notes.store');
-    Route::get('/ot/operative-notes/{operativeNote}/anesthesia/create', [AnesthesiaRecordController::class, 'create'])->name('anesthesia-records.create');
-    Route::post('/ot/operative-notes/{operativeNote}/anesthesia', [AnesthesiaRecordController::class, 'store'])->name('anesthesia-records.store');
+    // In-Patient Department (IPD) & Nursing
+    Route::prefix('ipd')->group(function () {
+        Route::get('/', [BedController::class, 'index'])->name('ipd.index');
+        Route::resource('admissions', AdmissionController::class)->only(['create', 'store']);
+        Route::get('/nursing', [NursingStationController::class, 'index'])->name('nursing.index');
 
-    // Print Routes
-    Route::get('/print/lab-result/{labResult}', [PrintController::class, 'labResult'])->name('print.lab-result');
-    Route::get('/print/bill/{bill}', [PrintController::class, 'billInvoice'])->name('print.bill-invoice'); // <-- Add this
+        // MAR (Medication Administration Record)
+        Route::get('/admission/{admission}/mar', [MedicationAdministrationController::class, 'show'])->name('mar.show');
+        Route::put('/medication-administration/{medicationAdministration}', [MedicationAdministrationController::class, 'update'])->name('mar.update');
 
-    // Patient Portal
-    Route::prefix('portal')->name('portal.')->group(function () {
-        Route::get('/dashboard', [PatientPortalController::class, 'dashboard'])->name('dashboard');
-        Route::get('/appointments', [PatientPortalController::class, 'appointments'])->name('appointments');
-        Route::get('/bills', [PatientPortalController::class, 'bills'])->name('bills');
-        Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
-        Route::get('/messages/{conversation}', [MessageController::class, 'show'])->name('messages.show');
-        Route::post('/messages/{conversation}', [MessageController::class, 'store'])->name('messages.store');
-        Route::get('/appointments/request', [PatientPortalController::class, 'createAppointment'])->name('appointments.request.create');
-        Route::post('/appointments/request', [AppointmentController::class, 'storeRequest'])->name('appointments.request.store');
+        // Nursing Notes
+        Route::get('/admission/{admission}/nursing-notes/create', [NursingNoteController::class, 'create'])->name('nursing-notes.create');
+        Route::post('/admission/{admission}/nursing-notes', [NursingNoteController::class, 'store'])->name('nursing-notes.store');
+
+        // Care Plans
+        Route::get('/admission/{admission}/care-plan', [CarePlanController::class, 'show'])->name('care-plans.show');
+        Route::post('/admission/{admission}/care-plan', [CarePlanController::class, 'store'])->name('care-plans.store');
+
+        // Shift Handovers
+        Route::get('/admission/{admission}/shift-handover/create', [ShiftHandoverController::class, 'create'])->name('shift-handovers.create');
+        Route::post('/admission/{admission}/shift-handover', [ShiftHandoverController::class, 'store'])->name('shift-handovers.store');
+    });
+
+    // Laboratory
+    Route::prefix('lab')->name('lab.')->group(function () {
+        Route::get('/', [LabController::class, 'index'])->name('index');
+        Route::put('/orders/{orderItem}', [LabController::class, 'updateStatus'])->name('updateStatus');
+        Route::get('/orders/{orderItem}/results', [LabResultController::class, 'create'])->name('results.create');
+        Route::post('/orders/{orderItem}/results', [LabResultController::class, 'store'])->name('results.store');
+        Route::post('/results/{labResult}/verify', [LabResultController::class, 'verify'])->name('results.verify');
+        Route::resource('inventory', LabInventoryController::class, ['as' => '']);
+    });
+
+    // Pharmacy
+    Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
+        Route::get('/', [PharmacyController::class, 'index'])->name('index');
+        Route::get('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'create'])->name('dispense.create');
+        Route::post('/orders/{orderItem}/dispense', [PharmacyDispensationController::class, 'store'])->name('dispense.store');
+        Route::resource('inventory', InventoryItemController::class, ['as' => '']);
+    });
+
+    // Radiology
+    Route::prefix('radiology')->name('radiology.')->group(function () {
+        Route::get('/', [RadiologyController::class, 'index'])->name('index');
+        Route::get('/orders/{orderItem}/schedule', [RadiologyScheduleController::class, 'create'])->name('schedule.create');
+        Route::post('/orders/{orderItem}/schedule', [RadiologyScheduleController::class, 'store'])->name('schedule.store');
+        Route::get('/orders/{orderItem}/report', [RadiologyReportController::class, 'create'])->name('report.create');
+        Route::post('/orders/{orderItem}/report', [RadiologyReportController::class, 'store'])->name('report.store');
+    });
+
+    // Operating Theater (OT)
+    Route::prefix('ot')->name('ot.')->group(function () {
+        Route::get('/', [OperatingTheaterController::class, 'index'])->name('index');
+        Route::get('/orders/{orderItem}/schedule', [OperatingTheaterController::class, 'create'])->name('schedule.create');
+        Route::post('/orders/{orderItem}/schedule', [OperatingTheaterController::class, 'store'])->name('schedule.store');
+        Route::get('/orders/{orderItem}/notes', [OperativeNoteController::class, 'create'])->name('operative-notes.create');
+        Route::post('/orders/{orderItem}/notes', [OperativeNoteController::class, 'store'])->name('operative-notes.store');
+        Route::get('/notes/{operativeNote}/anesthesia', [AnesthesiaRecordController::class, 'create'])->name('anesthesia-record.create');
+        Route::post('/notes/{operativeNote}/anesthesia', [AnesthesiaRecordController::class, 'store'])->name('anesthesia-record.store');
+    });
+
+    // Printing
+    Route::prefix('print')->name('print.')->group(function () {
+        Route::get('/lab/{labResult}', [PrintController::class, 'labResult'])->name('labResult');
+        Route::get('/bill/{bill}', [PrintController::class, 'billInvoice'])->name('billInvoice');
+    });
+
+    // Administration Panel
+    Route::prefix('admin')->middleware('auth')->group(function () {
+        Route::resource('users', UserController::class);
+        Route::resource('services', ServiceController::class);
+        Route::resource('templates', TemplateController::class);
+        Route::get('/audit-trail', [AuditLogController::class, 'index'])->name('audit.index');
+        Route::resource('test-catalogue', TestCatalogueController::class);
+
+        Route::get('/formulary', [FormularyController::class, 'index'])->name('formulary.index');
+        Route::get('/formulary/{service}/edit', [FormularyController::class, 'edit'])->name('formulary.edit');
+        Route::put('/formulary/{service}', [FormularyController::class, 'update'])->name('formulary.update');
+
+        Route::resource('order-sets', OrderSetController::class);
+        Route::resource('insurance-providers', InsuranceProviderController::class);
+        Route::get('/insurance-providers/{provider}/contracts', [InsuranceContractController::class, 'edit'])->name('insurance-contracts.edit');
+        Route::put('/insurance-providers/{provider}/contracts', [InsuranceContractController::class, 'update'])->name('insurance-contracts.update');
+
+        Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     });
 });
 
+// Patient Portal Routes
+Route::prefix('portal')->middleware('auth')->name('portal.')->group(function () {
+    Route::get('/dashboard', [PatientPortalController::class, 'dashboard'])->name('dashboard');
+    Route::get('/appointments', [PatientPortalController::class, 'appointments'])->name('appointments');
+    Route::get('/bills', [PatientPortalController::class, 'bills'])->name('bills');
+
+    // Requesting appointments
+    Route::get('/request-appointment', [PatientPortalController::class, 'createAppointment'])->name('appointments.create');
+    Route::post('/request-appointment', [AppointmentController::class, 'storeRequest'])->name('appointments.store');
+
+    // Messaging
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/{conversation}', [MessageController::class, 'show'])->name('messages.show');
+    Route::post('/messages/{conversation}', [MessageController::class, 'store'])->name('messages.store');
+});
+
+// Auth routes
 require __DIR__.'/auth.php';

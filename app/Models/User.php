@@ -21,7 +21,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'speciality', // <-- Add this
+        'speciality',
+        'photo_path', // <-- From previous step
     ];
 
     /**
@@ -45,6 +46,13 @@ class User extends Authenticatable
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['photo_url']; // <-- ADDED THIS LINE
+
+    /**
      * Get the conversations for the user (as a clinician).
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
@@ -53,4 +61,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(Conversation::class, 'clinician_id');
     }
+
+    /**
+     * Get the user's photo URL.
+     *
+     * @return string
+     */
+    public function getPhotoUrlAttribute()
+    {
+        if ($this->photo_path) {
+            // Ensure you have run "php artisan storage:link"
+            return asset('storage/' . $this->photo_path);
+        }
+
+        // Default avatar
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+    }
 }
+

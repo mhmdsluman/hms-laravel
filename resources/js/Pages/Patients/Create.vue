@@ -29,11 +29,11 @@ const form = useForm({
         country: 'Somalia',
         country_iso: 'SO',
     }],
-    // Insurance fields (optional)
     insurance_provider_id: null,
     policy_number: '',
     start_date: '',
     end_date: '',
+    photo: null, // <-- ADDED
 });
 
 // Duplicate check state
@@ -41,7 +41,6 @@ const emailStatus = ref({ checking: false, isDuplicate: false, message: '' });
 const phoneStatus = ref({ checking: false, isDuplicate: false, message: '' });
 let debounceTimeout = null;
 
-// Reusable duplicate check function
 const checkDuplicate = (field, value, statusRef) => {
     clearTimeout(debounceTimeout);
     if (!value) {
@@ -66,14 +65,12 @@ const checkDuplicate = (field, value, statusRef) => {
     }, 500);
 };
 
-// Watchers for duplicate checks
 watch(() => form.email, (newValue) => checkDuplicate('email', newValue, emailStatus));
 watch(() => form.primary_phone, (newValue) => {
     const fullPhone = form.primary_phone_country_code + ltrim(newValue, '0');
     checkDuplicate('primary_phone', fullPhone, phoneStatus);
 });
 
-// Phone helper
 function ltrim(str, chars) {
     return str.replace(new RegExp(`^[${chars}]+`), '');
 }
@@ -87,25 +84,18 @@ const selectedState = ref(null);
 
 onMounted(() => {
     countries.value = Country.getAllCountries();
-
-    // Try to restore last selected country from localStorage
     const lastCountry = localStorage.getItem('lastSelectedCountry');
-
     if (lastCountry) {
         selectedCountry.value = countries.value.find(c => c.isoCode === lastCountry) || null;
     }
-
-    // If no last country, prefer Somalia (SO) if present, otherwise keep null
     if (!selectedCountry.value) {
         const somalia = countries.value.find(c => c.isoCode === 'SO' || c.name?.toLowerCase() === 'somalia');
         if (somalia) {
             selectedCountry.value = somalia;
-            // ensure form.addresses is in sync
             form.addresses[0].country_iso = somalia.isoCode;
             form.addresses[0].country = somalia.name;
         }
     } else {
-        // ensure form.addresses is in sync when restored
         form.addresses[0].country_iso = selectedCountry.value.isoCode;
         form.addresses[0].country = selectedCountry.value.name;
     }
@@ -140,18 +130,91 @@ watch(selectedState, (state) => {
     }
 });
 
+// --- START: Photo Capture Logic ---
+const showCameraModal = ref(false);
+const photoPreviewUrl = ref(null);
+const videoRef = ref(null);
+const canvasRef = ref(null);
+const streamRef = ref(null);
+
+// Handle file input change
+function onFileChange(event) {
+    const file = event.target.files[0];
+    if (file) {
+        form.photo = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            photoPreviewUrl.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Open camera modal and start stream
+async function openCameraModal() {
+    showCameraModal.value = true;
+    try {
+        streamRef.value = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoRef.value.srcObject = streamRef.value;
+    } catch (err) {
+        console.error("Error accessing camera: ", err);
+        alert("Could not access camera. Please check permissions.");
+        showCameraModal.value = false;
+    }
+}
+
+// Close camera modal and stop stream
+function closeCamera() {
+    if (streamRef.value) {
+        streamRef.value.getTracks().forEach(track => track.stop());
+    }
+    showCameraModal.value = false;
+}
+
+// Capture photo from video stream
+function capturePhoto() {
+    const video = videoRef.value;
+    const canvas = canvasRef.value;
+    const context = canvas.getContext('2d');
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Get data URL and convert to Blob/File
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    photoPreviewUrl.value = dataUrl;
+
+    canvas.toBlob((blob) => {
+        form.photo = new File([blob], 'patient_photo.jpg', { type: 'image/jpeg' });
+    }, 'image/jpeg');
+
+    closeCamera();
+}
+
+// Clear photo preview and form data
+function clearPhotoPreview() {
+    form.photo = null;
+    photoPreviewUrl.value = null;
+}
+// --- END: Photo Capture Logic ---
+
+
 // Submit handler
 const submit = () => {
+    // Note: form.post() automatically handles multipart/form-data when a File object is present
     form.post(route('patients.store'), {
         onSuccess: () => {
-            // Reset to initial defaults
             form.reset();
-            // If we had a preferred country, re-apply it to the form after reset
+            clearPhotoPreview(); // Clear the photo preview
+            // Re-apply preferred country
             if (selectedCountry.value) {
                 form.addresses[0].country_iso = selectedCountry.value.isoCode;
                 form.addresses[0].country = selectedCountry.value.name;
             } else {
-                // default to Somalia if available
                 const somalia = countries.value.find(c => c.isoCode === 'SO');
                 if (somalia) {
                     selectedCountry.value = somalia;
@@ -160,6 +223,10 @@ const submit = () => {
                 }
             }
         },
+        onError: () => {
+             // Error handling (e.g., show a modal) can be added here
+             console.error("Error submitting form:", form.errors);
+        }
     });
 };
 </script>
@@ -175,11 +242,53 @@ const submit = () => {
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 bg-white border-b border-gray-200">
+
+                        <!-- Flash Message (from previous step, now handled by layout) -->
+                        <div v-if="$page.props.flash.success" class="mb-4 p-4 rounded-md bg-green-100 border border-green-300 text-green-700">
+                            {{ $page.props.flash.success }}
+                        </div>
+                        <div v-if="$page.props.flash.error" class="mb-4 p-4 rounded-md bg-red-100 border border-red-300 text-red-700">
+                            {{ $page.props.flash.error }}
+                        </div>
+                        <!-- End Flash Message -->
+
                         <form @submit.prevent="submit">
                             <div class="space-y-6">
 
+                                <!-- START: Profile Photo Section -->
+                                <fieldset class="grid grid-cols-1 gap-6">
+                                    <legend class="text-lg font-medium text-gray-900">Profile Photo (Optional)</legend>
+                                    <div class="flex items-center gap-4">
+                                        <!-- Photo Preview -->
+                                        <div class="w-24 h-24 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center border">
+                                            <img v-if="photoPreviewUrl" :src="photoPreviewUrl" class="w-full h-full object-cover">
+                                            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </div>
+                                        <!-- Buttons -->
+                                        <div class="flex flex-col gap-2">
+                                            <label for="photo_upload" class="cursor-pointer px-3 py-2 text-sm bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+                                                Upload Photo
+                                            </label>
+                                            <input id="photo_upload" type="file" @input="onFileChange" accept="image/*" class="hidden">
+
+                                            <button type="button" @click="openCameraModal" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                                Take Photo
+                                            </button>
+                                            <button v-if="photoPreviewUrl" type="button" @click="clearPhotoPreview" class="text-xs text-red-600 hover:underline">
+                                                Remove Photo
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-if="form.errors.photo" class="text-sm text-red-600 mt-1">{{ form.errors.photo }}</div>
+                                </fieldset>
+                                <!-- END: Profile Photo Section -->
+
+
                                 <!-- Personal Info -->
-                                <fieldset class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <fieldset class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
+                                    <legend class="text-lg font-medium text-gray-900">Personal Info</legend>
                                     <div>
                                         <label for="first_name" class="block font-medium text-sm text-gray-700">First Name</label>
                                         <input id="first_name" type="text" v-model="form.first_name" class="block mt-1 w-full rounded-md shadow-sm border-gray-300" required>
@@ -259,9 +368,9 @@ const submit = () => {
 
                                 <!-- Insurance Details -->
                                 <fieldset class="grid grid-cols-1 gap-6 border-t pt-6">
-                                     <legend class="text-lg font-medium text-gray-900">Insurance Details (Optional)</legend>
-                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                         <div class="md:col-span-2">
+                                    <legend class="text-lg font-medium text-gray-900">Insurance Details (Optional)</legend>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div class="md:col-span-2">
                                             <label class="block font-medium text-sm">Insurance Provider</label>
                                             <select v-model="form.insurance_provider_id" class="mt-1 block w-full">
                                                 <option :value="null">Self-Pay / No Insurance</option>
@@ -280,7 +389,7 @@ const submit = () => {
                                             <label class="block font-medium text-sm">Coverage End Date</label>
                                             <input type="date" v-model="form.end_date" class="mt-1 block w-full">
                                         </div>
-                                     </div>
+                                    </div>
                                 </fieldset>
                             </div>
 
@@ -294,5 +403,20 @@ const submit = () => {
                 </div>
             </div>
         </div>
+
+        <!-- START: Camera Modal -->
+        <div v-if="showCameraModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+            <div class="bg-white p-4 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 class="text-lg font-medium mb-2">Take Photo</h3>
+                <video ref="videoRef" autoplay playsinline class="w-full h-auto rounded-md border"></video>
+                <canvas ref="canvasRef" class="hidden"></canvas>
+                <div class="mt-4 flex justify-end gap-2">
+                    <button @click="closeCamera" type="button" class="px-4 py-2 text-sm bg-gray-200 rounded-md">Cancel</button>
+                    <button @click="capturePhoto" type="button" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md">Capture</button>
+                </div>
+            </div>
+        </div>
+        <!-- END: Camera Modal -->
+
     </AuthenticatedLayout>
 </template>

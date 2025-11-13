@@ -1,80 +1,245 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
-import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 
-defineProps({
-    users: Object,
+const props = defineProps({
+  users: { type: Object, default: () => ({ data: [], links: [] }) },
 });
 
-const showConfirmModal = ref(false);
-const userToDelete = ref(null);
+// UI state
+const query = ref('');
+const roleFilter = ref('all');
+const perPage = ref(10);
 
-const confirmUserDeletion = (id) => {
-    userToDelete.value = id;
-    showConfirmModal.value = true;
+// Defensive access
+const usersPage = computed(() => props.users || { data: [], links: [] });
+const usersList = computed(() => Array.isArray(usersPage.value.data) ? usersPage.value.data : []);
+
+// Role color mapping (solid colors)
+const roleColors = {
+  'Admin': 'bg-indigo-600 text-white',
+  'User': 'bg-green-600 text-white',
+  'Manager': 'bg-yellow-600 text-white',
+  'Support': 'bg-blue-600 text-white',
+  // Added roles from your system
+  'clinician': 'bg-blue-700 text-white',
+  'clerk': 'bg-gray-600 text-white',
+  'lab': 'bg-purple-600 text-white',
+  'pharmacy': 'bg-green-600 text-white',
+  'radiology': 'bg-sky-600 text-white',
+  'patient': 'bg-slate-500 text-white',
+  'nurse': 'bg-cyan-600 text-white',
+  'ot_manager': 'bg-orange-600 text-white',
+  'Default': 'bg-gray-700 text-white',
 };
 
-const deleteUser = () => {
-    router.delete(route('users.destroy', userToDelete.value), {
-        preserveScroll: true,
-        onSuccess: () => {
-            showConfirmModal.value = false;
-            userToDelete.value = null;
-        },
-    });
+// derive unique roles present on the current page
+const roles = computed(() => {
+  const set = new Set();
+  usersList.value.forEach(u => { if (u?.role) set.add(u.role); });
+  return ['all', ...Array.from(set)];
+});
+
+// client-side filtering (filters current page only)
+const filtered = computed(() => {
+  const q = (query.value || '').toLowerCase().trim();
+  return usersList.value.filter(u => {
+    if (roleFilter.value !== 'all' && u.role !== roleFilter.value) return false;
+    if (!q) return true;
+    return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.speciality || '').toLowerCase().includes(q);
+  }).slice(0, perPage.value);
+});
+
+// enhanced search suggestions (client-side, current page only)
+const suggestions = computed(() => {
+  const q = (query.value || '').toLowerCase().trim();
+  if (q.length < 2) return [];
+  const names = usersList.value.map(u => u.name || '').filter(Boolean);
+  const matches = names.filter(n => n.toLowerCase().includes(q));
+  // unique and limit
+  return Array.from(new Set(matches)).slice(0, 5);
+});
+
+// map role -> tailwind classes (solid)
+const badgeClassFor = (role) => roleColors[role] || roleColors.Default;
+
+// format date
+const fmtDate = (d) => {
+  try { return new Date(d).toLocaleDateString(); } catch { return d; }
 };
+
+// Delete handler (confirm + Inertia delete)
+const confirmDelete = (user) => {
+  if (!user) return;
+  const ok = confirm(`Delete user "${user.name}"? This action cannot be undone.`);
+  if (!ok) return;
+
+  let url;
+  try {
+    url = typeof route === 'function' ? route('users.destroy', user.id) : `/users/${user.id}`;
+  } catch {
+    url = `/users/${user.id}`;
+  }
+
+  router.delete(url, {
+    preserveState: true,
+    onSuccess: () => {
+      // backend flash will handle messaging via layout
+    }
+  });
+};
+
+// click suggestion
+const applySuggestion = (s) => { query.value = s; };
+
+// clear helper
+const clearSearch = () => { query.value = ''; };
+
+// keep a small debounce to avoid jitter when showing suggestions
+let debounceTimer = null;
+watch(query, () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    // nothing else needed — suggestions/computed will update
+  }, 150);
+});
 </script>
 
 <template>
-    <Head title="User Management" />
-    <AuthenticatedLayout>
-        <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">User Management</h2>
-        </template>
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-700 rounded">
-                    {{ $page.props.flash.success }}
-                </div>
-                 <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-700 rounded">
-                    {{ $page.props.flash.error }}
-                </div>                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-white border-b border-gray-200">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-lg font-semibold">All Users</h3>
-                            <Link :href="route('users.create')" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add New User</Link>
-                        </div>
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Speciality</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="user in users.data" :key="user.id">
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ user.name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ user.email }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap uppercase text-xs font-bold">{{ user.role }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ user.speciality }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                                        <Link :href="route('users.edit', user.id)" class="text-indigo-600 hover:text-indigo-900">Edit</Link>
-                                        <button @click="confirmUserDeletion(user.id)" class="text-red-600 hover:text-red-900">Delete</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <Pagination class="mt-6" :links="users.links" />
-                    </div>
-                </div>
-            </div>
-        </div>
-        <ConfirmationModal :show="showConfirmModal" @confirm="deleteUser" @cancel="showConfirmModal = false" />
-    </AuthenticatedLayout>
+  <Head title="User Directory" />
+
+  <AuthenticatedLayout>
+    <template #header>
+      <h2 class="font-semibold text-lg text-gray-900 truncate">User Directory Management</h2>
+    </template>
+
+    <div class="py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Controls -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div class="flex items-center gap-3 w-full md:w-auto">
+
+            <!-- Enhanced search box -->
+            <div class="relative w-full md:w-96">
+              <div class="relative flex items-center bg-white border rounded-lg px-3 py-2">
+                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35" /><circle cx="11" cy="11" r="6" stroke-width="2"/></svg>
+                <input v-model="query" placeholder="Search by name, email or speciality" class="ml-2 w-full outline-none text-sm" />
+                <button v-if="query" @click="clearSearch" class="ml-2 text-xs px-2 py-1 rounded-md border">Clear</button>
+              </div>
+
+              <!-- Suggestions dropdown -->
+              <div v-if="suggestions.length" class="absolute left-0 right-0 mt-1 bg-white border rounded-md shadow z-10">
+                <ul>
+                  <li v-for="s in suggestions" :key="s" class="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm" @click="applySuggestion(s)">
+              s     {{ s }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <select v-model="roleFilter" class="rounded-lg border px-3 py-2 text-sm bg-white">
+              <option v-for="r in roles" :key="r" :value="r">{{ r === 'all' ? 'All roles' : r.charAt(0).toUpperCase() + r.slice(1) }}</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <Link :href="typeof route === 'function' ? route('users.create') : '/users/create'" class="inline-flex items-center px-4 py-2 rounded-md text-white bg-indigo-700 hover:bg-indigo-800 text-sm">
+              Add New User
+            </Link>
+            <div class="text-sm text-gray-600">Showing <span class="font-medium text-gray-900">{{ filtered.length }}</span> of <span class="font-medium text-gray-900">{{ usersList.length }}</span></div>
+          </div>
+        </div>
+
+        <!-- Card / Table -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+          <div class="px-4 py-4 border-b">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <h3 class="text-lg font-semibold text-gray-800">All Users</h3>
+                <span class="text-sm text-gray-500">Manage users, roles and specialties</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Name</th>
+                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Email</th>
+                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Role</th>
+                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Speciality</th>
+                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase text-right">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y">
+                <template v-if="filtered.length">
+                  <tr v-for="user in filtered" :key="user.id" class="hover:bg-white">
+                    <td class="px-6 py-4 align-middle">
+                      <div class="flex items-center gap-3">
+                        <!-- START: Updated Photo -->
+                        <img :src="user.photo_url" :alt="user.name" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm">
+                        <!-- END: Updated Photo -->
+                s     <div>
+                          <!-- START: Clickable Name -->
+                          <Link :href="typeof route === 'function' ? route('users.show', user.id) : `/users/${user.id}`" class="font-medium text-gray-800 hover:text-blue-600 hover:underline">
+                            {{ user.name }}
+                    s     </Link>
+                          <!-- END: Clickable Name -->
+                          <div class="text-xs text-gray-500 mt-0.5">Joined: {{ fmtDate(user.created_at) }}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td class="px-6 py-4 align-middle">
+E                     <div class="text-sm text-gray-700">{{ user.email }}</div>
+                    </td>
+
+                    <td class="px-6 py-4 align-middle">
+                      <span :class="['inline-flex items-center px-2 py-1 rounded text-xs font-semibold capitalize', badgeClassFor(user.role)]">{{ (user.role || 'Unassigned').replace('_', ' ') }}</span>
+                    </td>
+
+                    <td class="px-6 py-4 align-middle">
+                      <div class="text-sm text-gray-700">{{ user.speciality || '—' }}</div>
+                    </td>
+
+                    <td class="px-6 py-4 align-middle text-right whitespace-nowrap">
+                      <div class="inline-flex items-center gap-2">
+                        <Link :href="typeof route === 'function' ? route('users.show', user.id) : `/users/${user.id}`" class="px-3 py-1 rounded-md text-white bg-green-600 hover:bg-green-700 text-sm">View</Link>
+
+              s       <Link :href="typeof route === 'function' ? route('users.edit', user.id) : `/users/${user.id}/edit`" class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 text-sm">Edit</Link>
+
+                        <button @click="confirmDelete(user)" class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 text-sm">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+
+                <tr v-else>
+                  <td class="px-6 py-12 text-center text-gray-500" colspan="5">
+                  s   No users found on this page.
+                    <div class="mt-3">
+                      <Link :href="typeof route === 'function' ? route('users.create') : '/users/create'" class="inline-block px-4 py-2 bg-indigo-700 text-white rounded-md text-sm">Create a user</Link>
+                    </div>
+  ci             </td>
+                </tr>
+s           </tbody>
+            </table>
+          </div>
+
+          <div class="px-4 py-4 border-t bg-white">
+            <Pagination :links="usersPage.links" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </AuthenticatedLayout>
 </template>
+
+<style scoped>
+/* keep badges solid (no shades) — any additional CSS tweaks can go here */
+</style>

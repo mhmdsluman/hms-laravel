@@ -21,8 +21,8 @@ class AppointmentController extends Controller
      */
     public function index(Request $request): Response
     {
-        $month = $request->input('month', Carbon::now()->month);
-        $year = $request->input('year', Carbon::now()->year);
+        $month = (int) $request->input('month', Carbon::now()->month);
+        $year = (int) $request->input('year', Carbon::now()->year);
         $date = Carbon::createFromDate($year, $month, 1);
 
         $appointments = Appointment::with(['patient', 'clinician'])
@@ -33,7 +33,6 @@ class AppointmentController extends Controller
 
         return Inertia::render('Appointments/Index', [
             'appointments' => $appointments,
-            'patients' => Patient::orderBy('first_name')->get(['id', 'first_name', 'last_name', 'date_of_birth']),
             'clinicians' => User::where('role', 'clinician')->orderBy('name')->get(['id', 'name']),
             'currentDate' => [
                 'month' => $date->month,
@@ -55,7 +54,14 @@ class AppointmentController extends Controller
             'reason_for_visit' => 'nullable|string|max:1000',
         ]);
 
-        $appointmentTime = Carbon::createFromFormat('Y-m-d\TH:i', $validatedData['appointment_time'], config('app.timezone'));
+        // Input from datetime-local is like '2025-11-01T13:00'
+        // Use createFromFormat with timezone; fallback to parse if format mismatch
+        try {
+            $appointmentTime = Carbon::createFromFormat('Y-m-d\TH:i', $validatedData['appointment_time'], config('app.timezone'));
+        } catch (\Throwable $e) {
+            // fallback to Carbon parse
+            $appointmentTime = Carbon::parse($validatedData['appointment_time'], config('app.timezone'));
+        }
 
         DB::transaction(function () use ($validatedData, $appointmentTime) {
             $appointment = Appointment::create([
@@ -78,8 +84,11 @@ class AppointmentController extends Controller
             // Add the base consultation fee if available
             $consultationService = Service::where('name', 'Consultation')->first();
             if ($consultationService) {
+                // assuming addService is defined on Bill model
                 $bill->addService($consultationService);
-                $bill->recalculateTotals();
+                if (method_exists($bill, 'recalculateTotals')) {
+                    $bill->recalculateTotals();
+                }
                 $bill->update(['status' => 'Unpaid']);
             }
         });
@@ -116,7 +125,11 @@ class AppointmentController extends Controller
             'reason_for_visit' => 'nullable|string|max:1000',
         ]);
 
-        $appointmentTime = Carbon::createFromFormat('Y-m-d\TH:i', $validatedData['appointment_time'], config('app.timezone'));
+        try {
+            $appointmentTime = Carbon::createFromFormat('Y-m-d\TH:i', $validatedData['appointment_time'], config('app.timezone'));
+        } catch (\Throwable $e) {
+            $appointmentTime = Carbon::parse($validatedData['appointment_time'], config('app.timezone'));
+        }
 
         $patient = Patient::where('email', Auth::user()->email)->firstOrFail();
 

@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('department'); // e.g., 'Laboratory', 'Radiology', 'Pharmacy'
+            $table->string('specimen_type')->nullable();
+            $table->string('units')->nullable();
+            $table->string('formulary_status')->nullable()->comment('e.g., Formulary, Non-Formulary, Restricted');
+            $table->boolean('is_controlled_substance')->default(false);
             $table->decimal('price', 10, 2);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

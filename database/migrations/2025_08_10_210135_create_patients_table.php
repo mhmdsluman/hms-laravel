@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('patients', function (Blueprint $table) {
             // Core Identifiers
-            $table->id(); // Use bigIncrements for the primary key
+            $table->id();
             $table->string('uhid')->unique();
             $table->string('mrn')->nullable();
             $table->json('external_ids')->nullable(); // { type, id, issuer }
@@ -59,8 +59,8 @@ return new class extends Migration
             // Audit & System Fields
             $table->foreignId('created_by_user_id')->nullable()->constrained('users');
             $table->foreignId('updated_by_user_id')->nullable()->constrained('users');
-            $table->timestamps(); // Adds created_at and updated_at
-            $table->softDeletes(); // Adds deleted_at for soft deletes
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

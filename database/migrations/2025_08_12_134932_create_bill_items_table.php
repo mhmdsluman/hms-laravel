@@ -1,32 +1,34 @@
-    <?php
+<?php
 
-    use Illuminate\Database\Migrations\Migration;
-    use Illuminate\Database\Schema\Blueprint;
-    use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-    return new class extends Migration
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
-        /**
-         * Run the migrations.
-         */
-        public function up(): void
-        {
-            Schema::create('bill_items', function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('bill_id')->constrained('bills')->onDelete('cascade');
-                $table->foreignId('service_id')->constrained('services');
-                $table->integer('quantity')->default(1);
-                $table->decimal('unit_price', 10, 2);
-                $table->decimal('total_price', 10, 2);
-                $table->timestamps();
-            });
-        }
+        Schema::create('bill_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('bill_id')->constrained('bills')->onDelete('cascade');
+            $table->foreignId('service_id')->constrained('services');
+            $table->integer('quantity')->default(1);
+            $table->decimal('unit_price', 10, 2);
+            $table->decimal('total_price', 10, 2);
+            $table->decimal('insurance_amount', 10, 2)->default(0.00);
+            $table->decimal('patient_co_pay', 10, 2)->default(0.00);
+            $table->timestamps();
+        });
+    }
 
-        /**
-         * Reverse the migrations.
-         */
-        public function down(): void
-        {
-            Schema::dropIfExists('bill_items');
-        }
-    };
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('bill_items');
+    }
+};

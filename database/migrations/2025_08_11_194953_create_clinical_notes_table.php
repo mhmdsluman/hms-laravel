@@ -15,11 +15,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('appointment_id')->constrained('appointments')->onDelete('cascade');
             $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
-            $table->foreignId('clinician_id')->constrained('users'); // The user who wrote the note
+            $table->foreignId('clinician_id')->constrained('users');
+            $table->foreignId('template_id')->nullable()->constrained('templates');
 
-            $table->longText('notes_content'); // For SOAP notes or general text
+            $table->longText('notes_content')->nullable();
+
             $table->string('provisional_diagnosis')->nullable();
+            $table->foreignId('provisional_diagnosis_code_id')->nullable()->constrained('diagnosis_codes');
+
             $table->string('final_diagnosis')->nullable();
+            $table->foreignId('final_diagnosis_code_id')->nullable()->constrained('diagnosis_codes');
 
             $table->timestamps();
         });

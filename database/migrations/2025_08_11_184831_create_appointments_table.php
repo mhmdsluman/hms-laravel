@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('duration_minutes')->default(15);
             $table->string('status')->default('Scheduled'); // e.g., Scheduled, Completed, Cancelled
             $table->text('reason_for_visit')->nullable();
-            $table->text('notes')->nullable(); // For clinician notes during the appointment
+            $table->text('notes')->nullable();
             $table->foreignId('created_by_user_id')->nullable()->constrained('users');
             $table->timestamps();
         });
