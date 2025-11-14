@@ -25,10 +25,12 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
+            DataMigrationSeeder::class,
             BedSeeder::class,
             DiagnosisCodeSeeder::class,
             InventorySeeder::class,
             SettingsSeeder::class,
+            LabTestsSeeder::class,
         ]);
     }
 }

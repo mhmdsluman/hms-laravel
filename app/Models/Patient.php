@@ -57,6 +57,7 @@ class Patient extends Model
     public function conversations(): HasMany { return $this->hasMany(Conversation::class); }
     public function emergencyVisits(): HasMany { return $this->hasMany(EmergencyVisit::class)->latest(); }
     public function insurancePolicies(): HasMany { return $this->hasMany(InsurancePolicy::class); }
+    public function labOrders(): HasMany { return $this->hasMany(LabOrder::class); }
 
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Claim; // <-- Keep if used elsewhere
 use App\Models\InsuranceProvider;
 use App\Models\Patient;
+use App\Models\LabOrderResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,7 @@ class PatientController extends Controller
             'admissions.nursingNotes.nurse',
             'admissions.shiftHandovers.outgoingNurse',
             'insurancePolicies.provider',
+            'labOrders.results.test',
         ]);
 
         return Inertia::render('Patients/Show', [
@@ -265,6 +267,38 @@ class PatientController extends Controller
      * Simple patient search endpoint used by the frontend autocomplete.
      * GET /patients/search?query=...
      */
+    public function getAbnormalSummary(Patient $patient)
+    {
+        $abnormalResults = LabOrderResult::where('is_abnormal', true)
+            ->whereHas('labOrder', function ($query) use ($patient) {
+                $query->where('patient_id', $patient->id);
+            })
+            ->with('test')
+            ->orderBy('created_at')
+            ->get();
+
+        $summary = [];
+        $groupedResults = $abnormalResults->groupBy('lab_test_id');
+
+        foreach ($groupedResults as $testId => $results) {
+            if (count($results) > 2) { // Only summarize if there are more than 2 abnormal results
+                $firstAbnormal = $results->first();
+                $lastAbnormal = $results->last();
+
+                // Simple direction check, can be improved
+                $direction = $lastAbnormal->result > $firstAbnormal->result ? 'increased' : 'decreased';
+
+                $summary[] = [
+                    'test' => $firstAbnormal->test,
+                    'direction' => $direction,
+                    'first_abnormal_date' => $firstAbnormal->created_at,
+                ];
+            }
+        }
+
+        return response()->json($summary);
+    }
+
     public function search(Request $request)
     {
         // validate to avoid unexpected types / large payloads

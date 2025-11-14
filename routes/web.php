@@ -85,6 +85,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Patient Registration & Management
     Route::get('/patients/search', [PatientController::class, 'search'])->name('patients.search');
     Route::post('/patients/check-duplicate', [PatientController::class, 'checkDuplicate'])->name('patients.checkDuplicate');
+    Route::get('/patients/{patient}/abnormal-summary', [PatientController::class, 'getAbnormalSummary'])->name('patients.abnormal-summary');
     Route::resource('patients', PatientController::class);
 
     // Appointments & Vitals
@@ -139,9 +140,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('lab')->name('lab.')->group(function () {
         Route::get('/', [LabController::class, 'index'])->name('index');
         Route::put('/orders/{orderItem}', [LabController::class, 'updateStatus'])->name('updateStatus');
-        Route::get('/orders/{orderItem}/results', [LabResultController::class, 'create'])->name('results.create');
-        Route::post('/orders/{orderItem}/results', [LabResultController::class, 'store'])->name('results.store');
-        Route::post('/results/{labResult}/verify', [LabResultController::class, 'verify'])->name('results.verify');
+        Route::get('/orders/{orderItem}/results', [LabController::class, 'createResult'])->name('results.create');
+        Route::post('/orders/{orderItem}/results', [LabController::class, 'storeResult'])->name('results.store');
+        Route::post('/results/{labResult}/verify', [LabController::class, 'verifyResult'])->name('results.verify');
+        Route::get('/patients/{patient}/tests/{test}/history', [LabController::class, 'getTestHistory'])->name('test.history');
     });
 
     // Pharmacy
@@ -173,7 +175,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Printing
     Route::prefix('print')->name('print.')->group(function () {
-        Route::get('/lab/{labResult}', [PrintController::class, 'labResult'])->name('labResult');
+        Route::get('/lab/{labOrder}', [PrintController::class, 'labResult'])->name('labResult');
         Route::get('/bill/{bill}', [PrintController::class, 'billInvoice'])->name('billInvoice');
     });
 

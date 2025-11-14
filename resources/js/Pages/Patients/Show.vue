@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import PrintModal from '@/Components/PrintModal.vue';
+import AbnormalResultsSummary from '@/Components/AbnormalResultsSummary.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
@@ -304,34 +305,46 @@ const primaryAddress = computed(() => {
           <div v-else class="text-center text-gray-500 py-4">No lab results found.</div>
         </section>
 
+        <!-- AI Assistant Summary -->
+        <AbnormalResultsSummary :patient-id="patient.id" />
+
         <!-- Enhanced Lab Results Card: per-order listing with Print button -->
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-          <div class="p-6 bg-white border-b border-gray-200">
-            <h3 class="text-lg font-semibold mb-4">Lab Results (All)</h3>
-            <div v-if="hasLabResults" class="space-y-4">
-              <template v-for="order in patient.orders" :key="order.id">
-                <template v-for="item in order.items" :key="item.id">
-                  <div v-if="item.lab_result" class="p-4 border rounded-lg">
-                    <div class="flex justify-between items-center mb-2">
-                      <div>
-                        <p class="font-semibold">{{ item.service.name }}</p>
-                        <p class="text-sm text-gray-500">{{ formatDateTime(item.lab_result.created_at) }}</p>
-                      </div>
-                      <!-- Print Button (opens modal) -->
-                      <button @click="openPrintModal(item.lab_result.id)" class="px-3 py-1 bg-gray-600 text-white text-xs rounded-md hover:bg-gray-700">
-                        Print
-                      </button>
+            <div class="p-6 bg-white border-b border-gray-200">
+                <h3 class="text-lg font-semibold mb-4">Lab Reports</h3>
+                <div v-if="patient.labOrders && patient.labOrders.length > 0" class="space-y-4">
+                    <div v-for="labOrder in patient.labOrders" :key="labOrder.id" class="p-4 border rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <p class="font-semibold">Order #{{ labOrder.order_id }}</p>
+                                <p class="text-sm text-gray-500">{{ formatDateTime(labOrder.created_at) }}</p>
+                            </div>
+                            <a :href="route('print.labResult', labOrder.id)" target="_blank" class="px-3 py-1 bg-gray-600 text-white text-xs rounded-md hover:bg-gray-700">
+                                Print Report
+                            </a>
+                        </div>
+                        <table class="w-full text-sm text-left text-gray-500 mt-2">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="py-3 px-6">Test</th>
+                                    <th scope="col" class="py-3 px-6">Result</th>
+                                    <th scope="col" class="py-3 px-6">Comment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="result in labOrder.results" :key="result.id" class="bg-white border-b">
+                                    <td class="py-4 px-6">{{ result.test.name }}</td>
+                                    <td class="py-4 px-6">{{ result.result }}</td>
+                                    <td class="py-4 px-6">{{ result.comment }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <p class="text-lg font-mono bg-gray-100 p-2 rounded">{{ item.lab_result.result_value }} {{ item.lab_result.units || '' }}</p>
-                    <p v-if="item.lab_result.notes" class="text-sm mt-2 whitespace-pre-wrap">{{ item.lab_result.notes }}</p>
-                  </div>
-                </template>
-              </template>
+                </div>
+                <div v-else class="text-center text-gray-500 py-4">
+                    No lab reports found for this patient.
+                </div>
             </div>
-            <div v-else class="text-center text-gray-500 py-4">
-              No lab results found for this patient.
-            </div>
-          </div>
         </div>
 
         <!-- Operative Notes -->
