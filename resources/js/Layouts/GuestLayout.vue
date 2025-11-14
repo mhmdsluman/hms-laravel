@@ -16,7 +16,11 @@ import { Link } from '@inertiajs/vue3';
         <div
             class="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg"
         >
-            <slot />
+            <Transition name="page" mode="out-in">
+                <div :key="$page.url">
+                    <slot />
+                </div>
+            </Transition>
         </div>
     </div>
 </template>

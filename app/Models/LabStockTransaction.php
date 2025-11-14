@@ -11,16 +11,16 @@ class LabStockTransaction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'lab_inventory_item_id',
+        'inventory_id',
         'transaction_type',
         'quantity',
         'user_id',
         'notes',
     ];
 
-    public function item(): BelongsTo
+    public function inventory(): BelongsTo
     {
-        return $this->belongsTo(LabInventoryItem::class, 'lab_inventory_item_id');
+        return $this->belongsTo(Inventory::class, 'inventory_id');
     }
 
     public function user(): BelongsTo

@@ -8,7 +8,6 @@ use App\Models\Admission;
 use App\Models\Appointment;
 use App\Models\Bill;
 use App\Models\ClinicalNote;
-use App\Models\InventoryItem;
 use App\Models\LabResult;
 use App\Models\MedicationAdministration;
 use App\Models\NursingNote;
@@ -59,7 +58,6 @@ class EventServiceProvider extends ServiceProvider
         NursingNote::observe(AuditObserver::class);
         MedicationAdministration::observe(AuditObserver::class);
         Service::observe(AuditObserver::class);
-        InventoryItem::observe(AuditObserver::class);
         User::observe(AuditObserver::class);
     }
 

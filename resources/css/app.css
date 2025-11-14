@@ -1,3 +1,15 @@
+@import './ui-buttons.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    .btn {
+        @apply inline-block px-6 py-3 font-bold text-center text-white uppercase align-middle transition-all rounded-lg cursor-pointer leading-pro text-xs ease-soft-in tracking-tight-soft shadow-soft-md bg-gradient-to-tl from-gray-900 to-slate-800 hover:scale-102 hover:shadow-soft-xs active:opacity-85;
+    }
+
+    .btn-primary {
+        @apply bg-gradient-to-tl from-purple-700 to-pink-500;
+    }
+}

@@ -12,7 +12,7 @@ class PharmacyDispensation extends Model
 
     protected $fillable = [
         'order_item_id',
-        'inventory_item_id',
+        'inventory_id',
         'quantity_dispensed',
         'dispensed_by_user_id',
         'verified_by_user_id', // <-- Add this
@@ -28,9 +28,9 @@ class PharmacyDispensation extends Model
         return $this->belongsTo(OrderItem::class);
     }
 
-    public function inventoryItem(): BelongsTo
+    public function inventory(): BelongsTo
     {
-        return $this->belongsTo(InventoryItem::class);
+        return $this->belongsTo(Inventory::class);
     }
 
     public function dispenser(): BelongsTo

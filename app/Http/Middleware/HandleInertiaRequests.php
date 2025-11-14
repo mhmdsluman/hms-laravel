@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Middleware;
-use App\Libraries\Ziggy\Ziggy;
+use Tighten\Ziggy\Ziggy;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 

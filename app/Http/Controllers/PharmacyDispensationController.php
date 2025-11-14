@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\InventoryItem;
+use App\Models\Inventory;
 use App\Models\OrderItem;
 use App\Models\PharmacyDispensation;
 use App\Models\User;
@@ -20,13 +20,13 @@ class PharmacyDispensationController extends Controller
     {
         $orderItem->load(['order.patient', 'service']);
 
-        $inventoryItems = InventoryItem::where('service_id', $orderItem->service_id)
-            ->where('quantity_in_stock', '>', 0)
+        $inventory = Inventory::where('service_id', $orderItem->service_id)
+            ->where('quantity', '>', 0)
             ->get();
 
         return Inertia::render('Pharmacy/Dispense', [
             'orderItem' => $orderItem,
-            'inventoryItems' => $inventoryItems,
+            'inventory' => $inventory,
         ]);
     }
 
@@ -36,7 +36,7 @@ class PharmacyDispensationController extends Controller
         $isControlled = $orderItem->service->is_controlled_substance;
 
         $validationRules = [
-            'inventory_item_id' => 'required|exists:inventory_items,id',
+            'inventory_id' => 'required|exists:inventory,id',
             'quantity_dispensed' => 'required|integer|min:1',
         ];
 
@@ -47,9 +47,9 @@ class PharmacyDispensationController extends Controller
 
         $validated = $request->validate($validationRules);
 
-        $inventoryItem = InventoryItem::findOrFail($validated['inventory_item_id']);
+        $inventory = Inventory::findOrFail($validated['inventory_id']);
 
-        if ($inventoryItem->quantity_in_stock < $validated['quantity_dispensed']) {
+        if ($inventory->quantity < $validated['quantity_dispensed']) {
             return back()->withErrors(['quantity_dispensed' => 'Not enough stock available.']);
         }
 
@@ -66,17 +66,17 @@ class PharmacyDispensationController extends Controller
             $verifierId = $verifier->id;
         }
 
-        DB::transaction(function () use ($validated, $orderItem, $inventoryItem, $verifierId) {
+        DB::transaction(function () use ($validated, $orderItem, $inventory, $verifierId) {
             PharmacyDispensation::create([
                 'order_item_id' => $orderItem->id,
-                'inventory_item_id' => $validated['inventory_item_id'],
+                'inventory_id' => $validated['inventory_id'],
                 'quantity_dispensed' => $validated['quantity_dispensed'],
                 'dispensed_by_user_id' => Auth::id(),
                 'verified_by_user_id' => $verifierId,
                 'verified_at' => $verifierId ? now() : null,
             ]);
 
-            $inventoryItem->decrement('quantity_in_stock', $validated['quantity_dispensed']);
+            $inventory->decrement('quantity', $validated['quantity_dispensed']);
             $orderItem->update(['status' => 'Completed']);
         });
 

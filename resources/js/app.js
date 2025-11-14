@@ -1,10 +1,10 @@
     import './bootstrap';
     import '../css/app.css';
+    import '../css/ui-buttons.css';
 
     import { createApp, h } from 'vue';
     import { createInertiaApp } from '@inertiajs/vue3';
     import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-    import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
     // Import i18n packages
     import { i18nVue } from 'laravel-vue-i18n';
@@ -17,7 +17,6 @@
         setup({ el, App, props, plugin }) {
             return createApp({ render: () => h(App, props) })
                 .use(plugin)
-                .use(ZiggyVue)
                 // Use i18n plugin
                 .use(i18nVue, {
                     resolve: async lang => {

@@ -48,7 +48,11 @@ import { Link } from '@inertiajs/vue3';
                  <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-700 rounded">
                     {{ $page.props.flash.success }}
                 </div>
-                <slot />
+                <Transition name="page" mode="out-in">
+                    <div :key="$page.url">
+                        <slot />
+                    </div>
+                </Transition>
             </div>
         </main>
     </div>

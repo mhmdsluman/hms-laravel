@@ -198,42 +198,35 @@ function changePage(p) {
         <div v-if="activeTab === 'orders'">
             <!-- controls -->
             <div class="bg-white p-4 rounded-lg shadow-sm border">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div class="flex items-center gap-2 w-full md:w-2/3">
-              <div class="relative w-full">
-                <input v-model="q" type="search" placeholder="Search patient, medication or status..." class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-300" />
-                <button @click="q=''" v-if="q" class="absolute right-2 top-2 text-sm text-gray-500">Clear</button>
-              </div>
-
-              <select v-model="statusFilter" class="border rounded-md px-3 py-2 text-sm">
-                <option value="All">All statuses</option>
-                <option v-for="s in statuses" :key="s" v-if="s !== 'All'">{{ s }}</option>
-              </select>
-
-              <input type="date" v-model="dateFilter" class="border rounded-md px-3 py-2 text-sm" />
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div class="flex items-center gap-2 w-full md:w-2/3">
+                        <div class="relative w-full">
+                            <input v-model="q" type="search" placeholder="Search patient, medication or status..." class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-300" />
+                            <button @click="q=''" v-if="q" class="absolute right-2 top-2 text-sm text-gray-500">Clear</button>
+                        </div>
+                        <select v-model="statusFilter" class="border rounded-md px-3 py-2 text-sm">
+                            <option value="All">All statuses</option>
+                            <option v-for="s in statuses" :key="s" v-if="s !== 'All'">{{ s }}</option>
+                        </select>
+                        <input type="date" v-model="dateFilter" class="border rounded-md px-3 py-2 text-sm" />
+                    </div>
+                    <div class="flex items-center gap-2 justify-end w-full md:w-auto">
+                        <select v-model="sortBy" class="border rounded-md px-3 py-2 text-sm">
+                            <option value="created_at">Newest</option>
+                            <option value="patient">Patient</option>
+                            <option value="medication">Medication</option>
+                        </select>
+                        <button @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'" class="px-3 py-2 bg-gray-100 rounded-md text-sm">
+                            {{ sortDir === 'asc' ? 'Asc' : 'Desc' }}
+                        </button>
+                        <select v-model.number="perPage" class="border rounded-md px-3 py-2 text-sm">
+                            <option :value="8">8 / page</option>
+                            <option :value="12">12 / page</option>
+                            <option :value="24">24 / page</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-
-            <div class="flex items-center gap-2 justify-end w-full md:w-auto">
-              <select v-model="sortBy" class="border rounded-md px-3 py-2 text-sm">
-                <option value="created_at">Newest</option>
-                <option value="patient">Patient</option>
-                <option value="medication">Medication</option>
-              </select>
-
-              <button @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'" class="px-3 py-2 bg-gray-100 rounded-md text-sm">
-                {{ sortDir === 'asc' ? 'Asc' : 'Desc' }}
-              </button>
-
-              <select v-model.number="perPage" class="border rounded-md px-3 py-2 text-sm">
-                <option :value="8">8 / page</option>
-                <option :value="12">12 / page</option>
-                <option :value="24">24 / page</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="activeTab === 'orders'">
             <!-- orders table -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
