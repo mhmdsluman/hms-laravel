@@ -6,6 +6,7 @@ import InvoiceHistoryModal from '@/Components/InvoiceHistoryModal.vue';
 import AbnormalResultsSummary from '@/Components/AbnormalResultsSummary.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { BeakerIcon, HeartIcon, ClipboardDocumentListIcon, ArrowsRightLeftIcon, DocumentTextIcon, FilmIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
   patient: Object,
@@ -244,7 +245,10 @@ const primaryAddress = computed(() => {
         <!-- Radiology -->
         <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
           <header class="flex items-center justify-between mb-3 relative">
-            <h4 class="text-lg font-semibold">Radiology Reports</h4>
+            <h4 class="flex items-center text-lg font-semibold">
+              <FilmIcon class="h-6 w-6 mr-2 text-gray-500" />
+              Radiology Reports
+            </h4>
             <div class="flex items-center space-x-3">
               <span v-if="hasRecentRad && !showPreviousRadReports" class="h-3 w-3 rounded-full bg-red-600 block" title="New radiology order within 24 hours"></span>
               <button @click="showPreviousRadReports = !showPreviousRadReports" class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">History</button>
@@ -276,7 +280,10 @@ const primaryAddress = computed(() => {
         <!-- Lab (summary + history) -->
         <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
           <header class="flex items-center justify-between mb-3">
-            <h4 class="text-lg font-semibold">Lab Results</h4>
+            <h4 class="flex items-center text-lg font-semibold">
+              <BeakerIcon class="h-6 w-6 mr-2 text-gray-500" />
+              Lab Results
+            </h4>
             <div class="flex items-center space-x-3">
               <span v-if="hasRecentLab && !showPreviousLabResults" class="h-3 w-3 rounded-full bg-red-600 block" title="New lab order within 24 hours"></span>
               <button @click="showPreviousLabResults = !showPreviousLabResults" class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">History</button>
@@ -315,7 +322,10 @@ const primaryAddress = computed(() => {
         <!-- Enhanced Lab Results Card: per-order listing with Print button -->
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6 bg-white border-b border-gray-200">
-                <h3 class="text-lg font-semibold mb-4">Lab Reports</h3>
+                <h3 class="flex items-center text-lg font-semibold mb-4">
+                  <DocumentTextIcon class="h-6 w-6 mr-2 text-gray-500" />
+                  Lab Reports
+                </h3>
                 <div v-if="patient.labOrders && patient.labOrders.length > 0" class="space-y-4">
                     <div v-for="labOrder in patient.labOrders" :key="labOrder.id" class="p-4 border rounded-lg">
                         <div class="flex justify-between items-center mb-2">
@@ -354,7 +364,10 @@ const primaryAddress = computed(() => {
         <!-- Operative Notes -->
         <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
           <header class="flex items-center justify-between mb-3">
-            <h4 class="text-lg font-semibold">Operative Notes</h4>
+            <h4 class="flex items-center text-lg font-semibold">
+              <ClipboardDocumentListIcon class="h-6 w-6 mr-2 text-gray-500" />
+              Operative Notes
+            </h4>
             <div class="flex items-center space-x-3">
               <span v-if="hasRecentOp && !showPreviousOpNotes" class="h-3 w-3 rounded-full bg-red-600 block" title="New operative note/order within 24 hours"></span>
               <button @click="showPreviousOpNotes = !showPreviousOpNotes" class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">History</button>
@@ -395,7 +408,10 @@ const primaryAddress = computed(() => {
         <!-- Shift Handovers -->
         <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
           <header class="flex items-center justify-between mb-3">
-            <h4 class="text-lg font-semibold">Shift Handovers</h4>
+            <h4 class="flex items-center text-lg font-semibold">
+              <ArrowsRightLeftIcon class="h-6 w-6 mr-2 text-gray-500" />
+              Shift Handovers
+            </h4>
             <div class="flex items-center space-x-3">
               <span v-if="hasRecentHandovers && !showAllHandovers" class="h-3 w-3 rounded-full bg-red-600 block" title="New handover within 24 hours"></span>
               <button @click="showAllHandovers = !showAllHandovers" class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">History</button>
@@ -427,7 +443,10 @@ const primaryAddress = computed(() => {
         <!-- Nursing Notes -->
         <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
           <header class="flex items-center justify-between mb-3">
-            <h4 class="text-lg font-semibold">Nursing Notes</h4>
+            <h4 class="flex items-center text-lg font-semibold">
+              <DocumentTextIcon class="h-6 w-6 mr-2 text-gray-500" />
+              Nursing Notes
+            </h4>
             <div class="flex items-center space-x-3">
               <span v-if="hasRecentNursing && !showPreviousNursingNotes" class="h-3 w-3 rounded-full bg-red-600 block" title="New nursing note within 24 hours"></span>
               <button @click="showPreviousNursingNotes = !showPreviousNursingNotes" class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">History</button>
@@ -459,7 +478,10 @@ const primaryAddress = computed(() => {
         <!-- Vitals History -->
         <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
           <header class="flex items-center justify-between mb-3">
-            <h4 class="text-lg font-semibold">Vitals History</h4>
+            <h4 class="flex items-center text-lg font-semibold">
+              <HeartIcon class="h-6 w-6 mr-2 text-gray-500" />
+              Vitals History
+            </h4>
             <div class="flex items-center space-x-3">
               <span v-if="hasRecentVitals && !showPreviousVitals" class="h-3 w-3 rounded-full bg-red-600 block" title="New vitals within 24 hours"></span>
               <button @click="showPreviousVitals = !showPreviousVitals" class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">History</button>

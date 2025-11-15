@@ -20,5 +20,7 @@ class SettingsSeeder extends Seeder
         Setting::create(['key' => 'hospital_email', 'value' => 'contact@communitygeneral.com']);
         Setting::create(['key' => 'hospital_logo', 'value' => null]);
         Setting::create(['key' => 'hospital_domain', 'value' => 'manhalhospital.com']);
+        Setting::create(['key' => 'last_uhid_char', 'value' => 'A']);
+        Setting::create(['key' => 'last_uhid_numeric', 'value' => '0']);
     }
 }

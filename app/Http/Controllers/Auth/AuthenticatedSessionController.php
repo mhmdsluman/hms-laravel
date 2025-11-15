@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Providers\RouteServiceProvider;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,19 +27,25 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): \Illuminate\Http\RedirectResponse
+    public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
-        $request->authenticate();
+        $credentials = $request->only('email', 'password');
 
-        $request->session()->regenerate();
-
-        // **MODIFIED**: Add role-based redirect logic
-        $user = $request->user();
-        if ($user->role === 'patient') {
-            return redirect()->intended(route('portal.dashboard', absolute: false));
+        // First, try to authenticate as a regular user
+        if (Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            return redirect()->intended(RouteServiceProvider::HOME);
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // If user auth fails, try to authenticate as a patient
+        if (Auth::guard('patient_portal')->attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('portal.dashboard'));
+        }
+
+        throw ValidationException::withMessages([
+            'email' => __('auth.failed'),
+        ]);
     }
 
     /**
@@ -46,7 +53,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): \Illuminate\Http\RedirectResponse
     {
-        Auth::guard('web')->logout();
+        if (Auth::guard('patient_portal')->check()) {
+            Auth::guard('patient_portal')->logout();
+        } else {
+            Auth::guard('web')->logout();
+        }
 
         $request->session()->invalidate();
 

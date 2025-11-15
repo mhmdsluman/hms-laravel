@@ -1,8 +1,9 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ref, watch, computed } from 'vue';
 import throttle from 'lodash/throttle';
 
 const props = defineProps({
@@ -11,6 +12,15 @@ const props = defineProps({
 });
 
 const search = ref(props.filters.search);
+const page = usePage();
+const showSuccessModal = ref(false);
+const successMessage = computed(() => page.props.flash.success);
+
+watch(successMessage, (newValue) => {
+    if (newValue) {
+        showSuccessModal.value = true;
+    }
+});
 
 watch(search, throttle(function (value) {
     router.get(route('patients.index'), { search: value }, {
@@ -86,5 +96,6 @@ watch(search, throttle(function (value) {
                 </div>
             </div>
         </div>
+        <ConfirmationModal :show="showSuccessModal" @confirm="showSuccessModal = false" @cancel="showSuccessModal = false" :message="successMessage" title="Success" />
     </AuthenticatedLayout>
 </template>

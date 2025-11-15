@@ -9,13 +9,25 @@
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <h3 class="text-lg leading-6 font-medium text-gray-900">Invoice History for {{ patient.first_name }} {{ patient.last_name }}</h3>
                     <div class="mt-4">
-                        <div class="space-y-4">
-                            <div v-for="invoice in invoices" :key="invoice.id" class="flex items-center">
+                        <div class="flex justify-end mb-4">
+                            <select v-model="filter" class="block w-1/3 rounded-md shadow-sm border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                <option value="today">Today</option>
+                                <option value="last_week">Last Week</option>
+                                <option value="this_month">This Month</option>
+                                <option value="this_year">This Year</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <div v-if="filteredInvoices.length > 0" class="space-y-4">
+                            <div v-for="invoice in filteredInvoices" :key="invoice.id" class="flex items-center">
                                 <input type="checkbox" :id="'invoice-' + invoice.id" :value="invoice.id" v-model="selectedInvoices" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                                 <label :for="'invoice-' + invoice.id" class="ml-3 block text-sm font-medium text-gray-700">
                                     {{ new Date(invoice.created_at).toLocaleDateString() }} - ${{ invoice.total_amount }}
                                 </label>
                             </div>
+                        </div>
+                        <div v-else class="text-center text-gray-500 py-4">
+                            No invoice history found for the selected period.
                         </div>
                     </div>
                 </div>
@@ -33,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -43,19 +55,47 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-const invoices = ref([]);
+const allInvoices = ref([]);
 const selectedInvoices = ref([]);
+const filter = ref('today');
 
 const fetchInvoices = async () => {
     if (props.patient) {
         try {
             const response = await axios.get(route('patients.invoiceHistory', props.patient.id));
-            invoices.value = response.data;
+            allInvoices.value = response.data;
         } catch (error) {
             console.error('Error fetching invoices:', error);
         }
     }
 };
+
+const filteredInvoices = computed(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisYear = new Date(now.getFullYear(), 0, 1);
+
+    return allInvoices.value.filter(invoice => {
+        const invoiceDate = new Date(invoice.created_at);
+        switch (filter.value) {
+            case 'today':
+                return invoiceDate >= today;
+            case 'last_week':
+                return invoiceDate >= lastWeek;
+            case 'this_month':
+                return invoiceDate >= thisMonth;
+            case 'this_year':
+                return invoiceDate >= thisYear;
+            case 'all':
+                return true;
+            default:
+                return true;
+        }
+    });
+});
+
 
 watch(() => props.show, (newVal) => {
     if (newVal) {

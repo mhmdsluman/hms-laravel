@@ -104,41 +104,66 @@ class PatientController extends Controller
         $firstName = $nameParts[0];
         $lastName = $nameParts[1] ?? '';
 
-        $patient = Patient::create([
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-            'date_of_birth' => $validatedData['date_of_birth'],
-            'gender' => $validatedData['gender'],
-            'primary_phone_country_code' => $countryCode,
-            'primary_phone' => $fullPhoneNumber,
-            'email' => 'temp@temp.com',
-            'addresses' => $addresses,
-            'patient_portal_password_hash' => $defaultPassword,
-            'photo_capture_path' => $photoPath,
-            'created_by_user_id' => Auth::id(),
-            'updated_by_user_id' => Auth::id(),
-            'uhid' => 'TEMP-' . time(),
-        ]);
+        $patient = DB::transaction(function () use ($validatedData, $firstName, $lastName, $countryCode, $fullPhoneNumber, $addresses, $defaultPassword, $photoPath) {
+            // Lock and get the last UHID settings
+            $lastUhIdCharSetting = Setting::where('key', 'last_uhid_char')->lockForUpdate()->first();
+            $lastUhIdNumericSetting = Setting::where('key', 'last_uhid_numeric')->lockForUpdate()->first();
 
-        $patient->uhid = 'HMS-A' . str_pad($patient->id, 7, '0', STR_PAD_LEFT);
+            $char = $lastUhIdCharSetting->value;
+            $numeric = (int) $lastUhIdNumericSetting->value;
 
-        $hospitalDomain = Setting::where('key', 'hospital_domain')->first()->value ?? 'hospital.com';
-        $age = \Carbon\Carbon::parse($validatedData['date_of_birth'])->age;
-        $uhidLastThree = substr($patient->uhid, -3);
-        $patient->email = strtolower($firstName) . $uhidLastThree . $age . '@' . $hospitalDomain;
+            // Increment the numeric part, and the character if it overflows
+            $numeric++;
+            if ($numeric > 9999) {
+                $numeric = 1;
+                $char++; // e.g., 'A' becomes 'B'
+            }
 
-        $patient->save();
+            // Format the new UHID
+            $newUhId = $char . str_pad($numeric, 4, '0', STR_PAD_LEFT);
 
-        if (!empty($validatedData['insurance_provider_id']) && !empty($validatedData['policy_number'])) {
-            $patient->insurancePolicies()->create([
-                'insurance_provider_id' => $validatedData['insurance_provider_id'],
-                'policy_number' => $validatedData['policy_number'],
-                'start_date' => $validatedData['start_date'] ?? null,
-                'end_date' => $validatedData['end_date'] ?? null,
+            // Create the patient
+            $patient = Patient::create([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'date_of_birth' => $validatedData['date_of_birth'],
+                'gender' => $validatedData['gender'],
+                'primary_phone_country_code' => $countryCode,
+                'primary_phone' => $fullPhoneNumber,
+                'email' => 'temp@temp.com', // Temporary email
+                'addresses' => $addresses,
+                'patient_portal_password_hash' => $defaultPassword,
+                'photo_capture_path' => $photoPath,
+                'created_by_user_id' => Auth::id(),
+                'updated_by_user_id' => Auth::id(),
+                'uhid' => $newUhId,
             ]);
-        }
 
-        return redirect()->route('patients.create')->with('success', 'Patient registered successfully.');
+            // Generate and update the final email
+            $hospitalDomain = Setting::where('key', 'hospital_domain')->first()->value ?? 'hospital.com';
+            $age = \Carbon\Carbon::parse($validatedData['date_of_birth'])->age;
+            $uhidLastThree = substr($patient->uhid, -3);
+            $patient->email = strtolower($firstName) . $uhidLastThree . $age . '@' . $hospitalDomain;
+            $patient->save();
+
+            // Update settings with the new UHID values
+            $lastUhIdCharSetting->update(['value' => $char]);
+            $lastUhIdNumericSetting->update(['value' => $numeric]);
+
+            // Create insurance policy if provided
+            if (!empty($validatedData['insurance_provider_id']) && !empty($validatedData['policy_number'])) {
+                $patient->insurancePolicies()->create([
+                    'insurance_provider_id' => $validatedData['insurance_provider_id'],
+                    'policy_number' => $validatedData['policy_number'],
+                    'start_date' => $validatedData['start_date'] ?? null,
+                    'end_date' => $validatedData['end_date'] ?? null,
+                ]);
+            }
+
+            return $patient;
+        });
+
+        return redirect()->route('patients.index')->with('success', 'Patient registered successfully.');
     }
 
     /**

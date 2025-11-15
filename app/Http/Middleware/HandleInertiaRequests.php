@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Middleware;
+
+use App\Models\Setting;
 use Tighten\Ziggy\Ziggy;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -39,6 +41,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'hospital_name' => fn () => Setting::where('key', 'hospital_name')->first()->value ?? 'My Hospital',
         ]);
     }
 }

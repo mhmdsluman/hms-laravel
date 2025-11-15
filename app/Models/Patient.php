@@ -4,14 +4,24 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Patient extends Model
+class Patient extends Authenticatable
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * Get the name of the password attribute for the patient.
+     *
+     * @return string
+     */
+    public function getAuthPasswordName()
+    {
+        return 'patient_portal_password_hash';
+    }
 
     protected $fillable = [
         'uhid', 'mrn', 'external_ids', 'first_name', 'middle_name', 'last_name',
@@ -61,19 +71,31 @@ class Patient extends Model
 
 
     /**
-     * Get the patient's current age in years.
+     * Get the patient's current age in a human-readable format (years, months, or days).
      */
-    public function getAgeAttribute(): ?int
+    public function getAgeAttribute(): ?string
     {
-        // Prefer using the accessor (casts) to retrieve the date_of_birth value.
-        // Guard against missing or null values to avoid PHP notices for undefined array keys.
         $dob = $this->getAttribute('date_of_birth');
 
         if (empty($dob)) {
             return null;
         }
 
-        return Carbon::parse($dob)->age;
+        $birthDate = Carbon::parse($dob);
+        $now = Carbon::now();
+
+        $years = $birthDate->diffInYears($now);
+        if ($years > 0) {
+            return $years . ' ' . ($years > 1 ? 'years' : 'year');
+        }
+
+        $months = $birthDate->diffInMonths($now);
+        if ($months > 0) {
+            return $months . ' ' . ($months > 1 ? 'months' : 'month');
+        }
+
+        $days = $birthDate->diffInDays($now);
+        return $days . ' ' . ($days > 1 ? 'days' : 'day');
     }
 
     /**
