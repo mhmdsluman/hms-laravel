@@ -105,12 +105,15 @@ class PatientController extends Controller
         $lastName = $nameParts[1] ?? '';
 
         $patient = DB::transaction(function () use ($validatedData, $firstName, $lastName, $countryCode, $fullPhoneNumber, $addresses, $defaultPassword, $photoPath) {
-            // Lock and get the last UHID settings
-            $lastUhIdCharSetting = Setting::where('key', 'last_uhid_char')->lockForUpdate()->first();
-            $lastUhIdNumericSetting = Setting::where('key', 'last_uhid_numeric')->lockForUpdate()->first();
+            // Lock settings table to prevent race conditions on UHID generation
+            DB::table('settings')->whereIn('key', ['last_uhid_char', 'last_uhid_numeric'])->lockForUpdate()->get();
 
-            $char = $lastUhIdCharSetting->value;
-            $numeric = (int) $lastUhIdNumericSetting->value;
+            // Get the last UHID settings, providing defaults if they don't exist
+            $lastUhIdChar = Setting::where('key', 'last_uhid_char')->first();
+            $lastUhIdNumeric = Setting::where('key', 'last_uhid_numeric')->first();
+
+            $char = $lastUhIdChar->value ?? 'A';
+            $numeric = (int) ($lastUhIdNumeric->value ?? 0);
 
             // Increment the numeric part, and the character if it overflows
             $numeric++;
@@ -146,9 +149,9 @@ class PatientController extends Controller
             $patient->email = strtolower($firstName) . $uhidLastThree . $age . '@' . $hospitalDomain;
             $patient->save();
 
-            // Update settings with the new UHID values
-            $lastUhIdCharSetting->update(['value' => $char]);
-            $lastUhIdNumericSetting->update(['value' => $numeric]);
+            // Create or update settings with the new UHID values
+            Setting::updateOrCreate(['key' => 'last_uhid_char'], ['value' => $char]);
+            Setting::updateOrCreate(['key' => 'last_uhid_numeric'], ['value' => $numeric]);
 
             // Create insurance policy if provided
             if (!empty($validatedData['insurance_provider_id']) && !empty($validatedData['policy_number'])) {
