@@ -11,7 +11,7 @@ class LabOrderResult extends Model
 
     protected $table = 'lab_order_results';
 
-    protected $fillable = ['lab_order_id', 'lab_test_id', 'result', 'is_abnormal', 'comment'];
+    protected $fillable = ['lab_order_id', 'lab_test_id', 'result', 'is_abnormal', 'comment', 'status'];
 
     public function test()
     {

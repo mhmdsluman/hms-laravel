@@ -143,7 +143,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/orders/{orderItem}/results', [LabController::class, 'createResult'])->name('results.create');
         Route::post('/orders/{orderItem}/results', [LabController::class, 'storeResult'])->name('results.store');
         Route::post('/results/{labResult}/verify', [LabController::class, 'verifyResult'])->name('results.verify');
+        Route::post('/results/{labResult}/reject', [LabController::class, 'rejectResult'])->name('results.reject');
         Route::get('/patients/{patient}/tests/{test}/history', [LabController::class, 'getTestHistory'])->name('test.history');
+        Route::get('/patients/{patient}/tests/{test}/cumulative', [LabController::class, 'cumulativeReport'])->name('test.cumulative');
     });
 
     // Pharmacy

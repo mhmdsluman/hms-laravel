@@ -7,6 +7,8 @@ use App\Models\Patient;
 use App\Models\LabTest;
 use App\Models\LabOrder;
 use App\Models\LabOrderResult;
+use App\Models\LabSample;
+use App\Models\QcResult;
 use App\Http\Controllers\LabInventoryController;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,34 +25,17 @@ class LabController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = LabOrder::with('patient', 'results.test')->where('status', '!=', 'completed');
+        $stats = [
+            'samples_collected_today' => LabSample::whereDate('collected_at', today())->count(),
+            'tests_pending_validation' => LabOrderResult::where('status', 'Preliminary')->count(),
+            'qc_failures' => QcResult::where('in_range', false)->whereDate('created_at', today())->count(),
+        ];
 
-        $query->when($request->input('search'), function ($query, $search) {
-            $query->where('order_id', 'like', "%{$search}%");
-        });
+        $recent_activity = LabOrder::with('patient')->latest()->limit(10)->get();
 
-        $activeOrders = $query->get();
-
-        foreach ($activeOrders as $order) {
-            if (count($order->tests) > 0) {
-                $order->progress = (count($order->results) / count($order->tests)) * 100;
-            } else {
-                $order->progress = 0;
-            }
-
-            $maxTime = 0;
-            foreach ($order->tests as $test) {
-                if ($test->estimated_time > $maxTime) {
-                    $maxTime = $test->estimated_time;
-                }
-            }
-            $buffer = count($order->tests) > 5 ? 30 : 10;
-            $order->estimated_time = $maxTime + $buffer . ' minutes';
-        }
-
-        return Inertia::render('Lab/LabDashboard', [
-            'activeOrders' => $activeOrders,
-            'filters' => $request->only(['search']),
+        return Inertia::render('Lab/Dashboard', [
+            'stats' => $stats,
+            'recent_activity' => $recent_activity,
         ]);
     }
 
@@ -115,6 +100,7 @@ class LabController extends Controller
                 'result' => is_array($result) ? json_encode($result) : $result,
                 'is_abnormal' => $isAbnormal,
                 'comment' => $validated['comments'][$testId] ?? null,
+                'status' => 'Preliminary',
             ]);
 
             $this->labInventoryController->decrementStock($labTest);
@@ -125,10 +111,16 @@ class LabController extends Controller
         return redirect()->route('lab.index')->with('success', 'Lab results stored successfully.');
     }
 
-    public function verifyResult(Request $request, $labResult)
+    public function verifyResult(Request $request, LabOrderResult $labResult)
     {
-        // Placeholder for verifying lab results
-        return redirect()->route('lab.index')->with('success', 'Lab results verified successfully.');
+        $labResult->update(['status' => 'Validated']);
+        return redirect()->back()->with('success', 'Lab result validated successfully.');
+    }
+
+    public function rejectResult(Request $request, LabOrderResult $labResult)
+    {
+        $labResult->update(['status' => 'Requires Correction']);
+        return redirect()->back()->with('success', 'Lab result sent back for correction.');
     }
 
     public function getTestHistory(Patient $patient, LabTest $test)
@@ -141,5 +133,21 @@ class LabController extends Controller
         ->get();
 
         return response()->json($history);
+    }
+
+    public function cumulativeReport(Patient $patient, LabTest $test): Response
+    {
+        $history = LabOrderResult::whereHas('labOrder', function ($query) use ($patient) {
+            $query->where('patient_id', $patient->id);
+        })
+        ->where('lab_test_id', $test->id)
+        ->orderBy('created_at', 'asc')
+        ->get();
+
+        return Inertia::render('Lab/CumulativeReport', [
+            'patient' => $patient,
+            'test' => $test,
+            'history' => $history,
+        ]);
     }
 }

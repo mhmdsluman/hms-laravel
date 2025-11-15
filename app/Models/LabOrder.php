@@ -27,4 +27,9 @@ class LabOrder extends Model
     {
         return $this->belongsToMany(LabTest::class, 'lab_order_results');
     }
+
+    public function samples()
+    {
+        return $this->hasMany(LabSample::class);
+    }
 }
