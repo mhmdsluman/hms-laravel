@@ -20,6 +20,9 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                if ($guard === 'patient_portal') {
+                    return redirect()->route('portal.dashboard');
+                }
                 return redirect(config('fortify.home', '/dashboard'));
             }
         }

@@ -182,7 +182,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Administration Panel
     Route::prefix('admin')->middleware('auth')->group(function () {
-        Route::get('settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('admin.settings');
+        Route::get('settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('admin.settings.index');
         Route::post('settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('admin.settings.update');
         Route::resource('users', UserController::class);
         Route::resource('services', ServiceController::class);

@@ -84,18 +84,18 @@ class Patient extends Authenticatable
         $birthDate = Carbon::parse($dob);
         $now = Carbon::now();
 
-        $years = $birthDate->diffInYears($now);
-        if ($years > 0) {
-            return $years . ' ' . ($years > 1 ? 'years' : 'year');
+        if ($birthDate->diffInYears($now) >= 1) {
+            $years = $birthDate->diffInYears($now);
+            return $years . ($years > 1 ? ' years' : ' year');
         }
 
-        $months = $birthDate->diffInMonths($now);
-        if ($months > 0) {
-            return $months . ' ' . ($months > 1 ? 'months' : 'month');
+        if ($birthDate->diffInMonths($now) >= 1) {
+            $months = $birthDate->diffInMonths($now);
+            return $months . ($months > 1 ? ' months' : ' month');
         }
 
         $days = $birthDate->diffInDays($now);
-        return $days . ' ' . ($days > 1 ? 'days' : 'day');
+        return $days . ($days > 1 ? ' days' : ' day');
     }
 
     /**
