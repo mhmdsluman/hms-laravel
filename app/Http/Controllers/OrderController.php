@@ -7,6 +7,7 @@ use App\Models\Bill;
 use App\Models\BillableEvent;
 use App\Models\Order;
 use App\Models\Service;
+use App\Models\LabTest;
 use App\Services\ClinicalDecisionSupportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,6 +49,21 @@ class OrderController extends Controller
 
         // Load the selected services
         $services = Service::find($validated['service_ids']);
+
+        // Expand panels into individual tests
+        $finalServiceIds = [];
+        foreach ($services as $service) {
+            $labTest = LabTest::where('name', $service->name)->first();
+            if ($labTest && $labTest->is_panel) {
+                foreach ($labTest->tests as $childTest) {
+                    $finalServiceIds[] = $childTest->service->id;
+                }
+            } else {
+                $finalServiceIds[] = $service->id;
+            }
+        }
+        $services = Service::find($finalServiceIds);
+
 
         // Restriction check (formulary)
         foreach ($services as $service) {
