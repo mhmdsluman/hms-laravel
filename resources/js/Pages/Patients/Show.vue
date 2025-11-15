@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import PrintModal from '@/Components/PrintModal.vue';
+import InvoiceHistoryModal from '@/Components/InvoiceHistoryModal.vue';
 import AbnormalResultsSummary from '@/Components/AbnormalResultsSummary.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
@@ -27,6 +28,7 @@ const showPreviousLabResults = ref(false);
 const showAllHandovers = ref(false);
 const showPreviousNursingNotes = ref(false);
 const showPreviousVitals = ref(false);
+const showInvoiceHistoryModal = ref(false);
 
 // Print modal state (from code 2)
 const showPrintModal = ref(false);
@@ -178,6 +180,8 @@ const primaryAddress = computed(() => {
 
           <a v-if="safeRoute('print.patient', patient.id)" :href="safeRoute('print.patient', patient.id)" target="_blank" class="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">Print Profile</a>
 
+          <button @click="showInvoiceHistoryModal = true" class="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">Invoice History</button>
+
           <Link :href="route('patients.index')" class="px-3 py-2 text-sm text-blue-600 hover:underline">Back to Patients</Link>
         </div>
       </div>
@@ -213,7 +217,7 @@ const primaryAddress = computed(() => {
               <div class="lg:col-span-1">
                 <h3 class="text-md font-medium text-gray-700 mb-2">Summary</h3>
                 <dl class="grid grid-cols-1 gap-2 text-sm text-gray-700">
-                  <div class="flex justify-between"><dt class="font-medium">Patient No</dt><dd>{{ patient.patient_no || '—' }}</dd></div>
+                  <div class="flex justify-between"><dt class="font-medium">Patient No</dt><dd>{{ patient.uhid || '—' }}</dd></div>
                   <div class="flex justify-between"><dt class="font-medium">Phone</dt><dd>{{ patient.primary_phone || '—' }}</dd></div>
                   <div class="flex justify-between"><dt class="font-medium">Email</dt><dd>{{ patient.email || 'Not provided' }}</dd></div>
                   <div class="flex justify-between"><dt class="font-medium">DOB</dt><dd>{{ patient.date_of_birth || '—' }}</dd></div>
@@ -525,6 +529,12 @@ const primaryAddress = computed(() => {
       message="Are you sure you want to delete this patient? This action will mark the record as deleted and hide it from view."
       @confirm="deletePatient"
       @cancel="showConfirmModal = false"
+    />
+
+    <InvoiceHistoryModal
+        :show="showInvoiceHistoryModal"
+        :patient="patient"
+        @close="showInvoiceHistoryModal = false"
     />
   </AuthenticatedLayout>
 </template>

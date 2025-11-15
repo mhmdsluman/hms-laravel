@@ -22,7 +22,7 @@ class Patient extends Model
         'surgical_history', 'family_history', 'immunization_history', 'consent_flags',
         'legal_flags',
         'photo_capture_path', // <-- ALREADY EXISTS, ENSURE IT'S HERE
-        'created_by_user_id', 'updated_by_user_id',
+        'created_by_user_id', 'updated_by_user_id', 'patient_portal_password_hash',
     ];
 
     protected $casts = [
@@ -63,9 +63,17 @@ class Patient extends Model
     /**
      * Get the patient's current age in years.
      */
-    public function getAgeAttribute(): int
+    public function getAgeAttribute(): ?int
     {
-        return Carbon::parse($this->attributes['date_of_birth'])->age;
+        // Prefer using the accessor (casts) to retrieve the date_of_birth value.
+        // Guard against missing or null values to avoid PHP notices for undefined array keys.
+        $dob = $this->getAttribute('date_of_birth');
+
+        if (empty($dob)) {
+            return null;
+        }
+
+        return Carbon::parse($dob)->age;
     }
 
     /**

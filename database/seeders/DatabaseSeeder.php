@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             InventorySeeder::class,
             SettingsSeeder::class,
             LabTestsSeeder::class,
+            ServicesSeeder::class,
         ]);
     }
 }

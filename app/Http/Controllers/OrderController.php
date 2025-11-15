@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Models\OrderItem;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
@@ -60,7 +61,15 @@ class OrderController extends Controller
         // CDSS Checks (Drug Interactions and Allergies)
         $patient = $appointment->patient;
         $orderedRxcuis = $services->whereNotNull('rxcui')->pluck('rxcui')->toArray();
-        $patientMedications = $patient->medications()->whereNotNull('rxcui')->pluck('rxcui')->toArray();
+
+        // Collect patient's currently recorded medications by looking up past order items
+        // that reference services with an RxCUI. Some deployments may not have a dedicated
+        // "medications" relationship on Patient, so we derive medications from order items.
+        $patientMedications = OrderItem::whereHas('order', function ($q) use ($patient) {
+            $q->where('patient_id', $patient->id);
+        })->whereHas('service', function ($q) {
+            $q->whereNotNull('rxcui');
+        })->with('service')->get()->pluck('service.rxcui')->filter()->unique()->toArray();
         $allRxcuis = array_merge($orderedRxcuis, $patientMedications);
 
         if (count($allRxcuis) > 1) {
@@ -71,8 +80,12 @@ class OrderController extends Controller
             }
         }
 
+        // Patient allergies are stored as an array (cast on the model). Wrap with collect()
+        // so we always have a Collection and can safely call contains().
+        $patientAllergies = collect($patient->allergies ?? []);
+
         foreach ($services as $service) {
-            if ($patient->allergies->contains('name', $service->name)) {
+            if ($patientAllergies->contains('name', $service->name)) {
                 Log::warning('Patient ' . $patient->id . ' has a known allergy to ' . $service->name);
                 // In a real application, you would display a warning to the user here.
             }

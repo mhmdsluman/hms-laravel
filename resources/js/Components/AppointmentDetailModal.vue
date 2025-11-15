@@ -50,9 +50,10 @@ const updateStatus = (status) => {
 
 const generateBill = () => {
   if (!props.appointment?.id) return;
-  const url = safeRoute('bills.store', props.appointment.id);
+  // backend route is named 'billing.store' (not 'bills.store')
+  const url = safeRoute('billing.store', props.appointment.id);
   if (!url) {
-    console.warn("Route 'bills.store' not found. Cannot generate bill.");
+    console.warn("Route 'billing.store' not found. Cannot generate bill.");
     return;
   }
   // optional: confirm before creating a bill
@@ -140,8 +141,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeyDown));
         </div>
 
         <div class="flex items-center gap-2">
-          <Link v-if="appointment.status === 'Scheduled' && safeRoute('clinical-notes.create', appointment.id)" :href="safeRoute('clinical-notes.create', appointment.id)" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm">Start Consultation</Link>
-          <Link v-if="appointment.status === 'Scheduled' && safeRoute('vitals.create', appointment.id)" :href="safeRoute('vitals.create', appointment.id)" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Record Vitals</Link>
+          <Link v-if="appointment.status === 'Scheduled' && safeRoute('consultation.create', appointment.id)" :href="safeRoute('consultation.create', appointment.id)" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm">Start Consultation</Link>
+          <Link v-if="appointment.status === 'Scheduled' && safeRoute('appointments.vitals.create', appointment.id)" :href="safeRoute('appointments.vitals.create', appointment.id)" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Record Vitals</Link>
           <button v-if="appointment.status === 'Completed' && appointment.id" @click="generateBill" class="px-4 py-2 bg-purple-600 text-white rounded text-sm">Generate Bill</button>
         </div>
       </footer>

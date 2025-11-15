@@ -13,8 +13,7 @@ const props = defineProps({
 });
 
 const form = useForm({
-    first_name: '',
-    last_name: '',
+    full_name: '',
     date_of_birth: '',
     gender: 'Male',
     primary_phone_country_code: '+249',
@@ -37,7 +36,6 @@ const form = useForm({
 });
 
 // Duplicate check state
-const emailStatus = ref({ checking: false, isDuplicate: false, message: '' });
 const phoneStatus = ref({ checking: false, isDuplicate: false, message: '' });
 let debounceTimeout = null;
 
@@ -65,7 +63,6 @@ const checkDuplicate = (field, value, statusRef) => {
     }, 500);
 };
 
-watch(() => form.email, (newValue) => checkDuplicate('email', newValue, emailStatus));
 watch(() => form.primary_phone, (newValue) => {
     const fullPhone = form.primary_phone_country_code + ltrim(newValue, '0');
     checkDuplicate('primary_phone', fullPhone, phoneStatus);
@@ -289,15 +286,10 @@ const submit = () => {
                                 <!-- Personal Info -->
                                 <fieldset class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
                                     <legend class="text-lg font-medium text-gray-900">Personal Info</legend>
-                                    <div>
-                                        <label for="first_name" class="block font-medium text-sm text-gray-700">First Name</label>
-                                        <input id="first_name" type="text" v-model="form.first_name" class="block mt-1 w-full rounded-md shadow-sm border-gray-300" required>
-                                        <div v-if="form.errors.first_name" class="text-sm text-red-600 mt-1">{{ form.errors.first_name }}</div>
-                                    </div>
-                                    <div>
-                                        <label for="last_name" class="block font-medium text-sm text-gray-700">Last Name</label>
-                                        <input id="last_name" type="text" v-model="form.last_name" class="block mt-1 w-full rounded-md shadow-sm border-gray-300" required>
-                                        <div v-if="form.errors.last_name" class="text-sm text-red-600 mt-1">{{ form.errors.last_name }}</div>
+                                    <div class="md:col-span-2">
+                                        <label for="full_name" class="block font-medium text-sm text-gray-700">Full Name</label>
+                                        <input id="full_name" type="text" v-model="form.full_name" class="block mt-1 w-full rounded-md shadow-sm border-gray-300" required>
+                                        <div v-if="form.errors.full_name" class="text-sm text-red-600 mt-1">{{ form.errors.full_name }}</div>
                                     </div>
                                     <div>
                                         <label for="date_of_birth" class="block font-medium text-sm text-gray-700">Date of Birth</label>
@@ -321,12 +313,6 @@ const submit = () => {
                                         </div>
                                         <div v-if="phoneStatus.message" :class="{'text-red-600': phoneStatus.isDuplicate, 'text-green-600': !phoneStatus.isDuplicate && form.primary_phone}" class="text-xs mt-1">{{ phoneStatus.message }}</div>
                                         <div v-if="form.errors.primary_phone" class="text-sm text-red-600 mt-1">{{ form.errors.primary_phone }}</div>
-                                    </div>
-                                    <div class="md:col-span-2">
-                                        <label for="email" class="block font-medium text-sm text-gray-700">Email (Optional)</label>
-                                        <input id="email" type="email" v-model="form.email" class="block mt-1 w-full rounded-md shadow-sm border-gray-300">
-                                        <div v-if="emailStatus.message" :class="{'text-red-600': emailStatus.isDuplicate, 'text-green-600': !emailStatus.isDuplicate && form.email}" class="text-xs mt-1">{{ emailStatus.message }}</div>
-                                        <div v-if="form.errors.email" class="text-sm text-red-600 mt-1">{{ form.errors.email }}</div>
                                     </div>
                                 </fieldset>
 
@@ -394,7 +380,7 @@ const submit = () => {
                             </div>
 
                             <div class="flex items-center justify-end mt-6">
-                                <button type="submit" :disabled="form.processing || emailStatus.isDuplicate || phoneStatus.isDuplicate" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                <button type="submit" :disabled="form.processing || phoneStatus.isDuplicate" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
                                     Register Patient
                                 </button>
                             </div>

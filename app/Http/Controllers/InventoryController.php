@@ -11,14 +11,15 @@ class InventoryController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Inventory/Index', [
+        // Frontend pages live under Pages/Pharmacy/Inventory — render those so Inertia can resolve the component
+        return Inertia::render('Pharmacy/Inventory/Index', [
             'items' => Inventory::latest()->paginate(10),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('Inventory/Create');
+        return Inertia::render('Pharmacy/Inventory/Create');
     }
 
     public function store(Request $request)
@@ -39,7 +40,7 @@ class InventoryController extends Controller
 
     public function edit(Inventory $inventory): Response
     {
-        return Inertia::render('Inventory/Edit', [
+        return Inertia::render('Pharmacy/Inventory/Edit', [
             'item' => $inventory,
         ]);
     }

@@ -178,4 +178,10 @@ return redirect()->route('billing.show', $bill->id)
 
         return redirect()->route('billing.index')->with('success', 'Bill has been voided successfully.');
     }
+
+    public function getInvoiceHistory(Patient $patient)
+    {
+        $bills = $patient->bills()->latest()->get();
+        return response()->json($bills);
+    }
 }

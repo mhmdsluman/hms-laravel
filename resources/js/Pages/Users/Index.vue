@@ -131,13 +131,13 @@ watch(query, () => {
               </div>
 
               <!-- Suggestions dropdown -->
-              <div v-if="suggestions.length" class="absolute left-0 right-0 mt-1 bg-white border rounded-md shadow z-10">
-                <ul>
-                  <li v-for="s in suggestions" :key="s" class="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm" @click="applySuggestion(s)">
-              s     {{ s }}
-                  </li>
-                </ul>
-              </div>
+                            <div v-if="suggestions.length" class="absolute left-0 right-0 mt-1 bg-white border rounded-md shadow z-10">
+                                <ul>
+                                    <li v-for="s in suggestions" :key="s" class="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm" @click="applySuggestion(s)">
+                                        {{ s }}
+                                    </li>
+                                </ul>
+                            </div>
             </div>
 
             <select v-model="roleFilter" class="rounded-lg border px-3 py-2 text-sm bg-white">
@@ -183,21 +183,21 @@ watch(query, () => {
                       <div class="flex items-center gap-3">
                         <!-- START: Updated Photo -->
                         <img :src="user.photo_url" :alt="user.name" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm">
-                        <!-- END: Updated Photo -->
-                s     <div>
+                                <!-- END: Updated Photo -->
+                            <div>
                           <!-- START: Clickable Name -->
                           <Link :href="typeof route === 'function' ? route('users.show', user.id) : `/users/${user.id}`" class="font-medium text-gray-800 hover:text-blue-600 hover:underline">
-                            {{ user.name }}
-                    s     </Link>
+                                    {{ user.name }}
+                                </Link>
                           <!-- END: Clickable Name -->
                           <div class="text-xs text-gray-500 mt-0.5">Joined: {{ fmtDate(user.created_at) }}</div>
                         </div>
                       </div>
                     </td>
 
-                    <td class="px-6 py-4 align-middle">
-E                     <div class="text-sm text-gray-700">{{ user.email }}</div>
-                    </td>
+                        <td class="px-6 py-4 align-middle">
+                            <div class="text-sm text-gray-700">{{ user.email }}</div>
+                        </td>
 
                     <td class="px-6 py-4 align-middle">
                       <span :class="['inline-flex items-center px-2 py-1 rounded text-xs font-semibold capitalize', badgeClassFor(user.role)]">{{ (user.role || 'Unassigned').replace('_', ' ') }}</span>
@@ -208,26 +208,26 @@ E                     <div class="text-sm text-gray-700">{{ user.email
                     </td>
 
                     <td class="px-6 py-4 align-middle text-right whitespace-nowrap">
-                      <div class="inline-flex items-center gap-2">
-                        <Link :href="typeof route === 'function' ? route('users.show', user.id) : `/users/${user.id}`" class="px-3 py-1 rounded-md text-white bg-green-600 hover:bg-green-700 text-sm">View</Link>
+                                <div class="inline-flex items-center gap-2">
+                                    <Link :href="typeof route === 'function' ? route('users.show', user.id) : `/users/${user.id}`" class="px-3 py-1 rounded-md text-white bg-green-600 hover:bg-green-700 text-sm">View</Link>
 
-              s       <Link :href="typeof route === 'function' ? route('users.edit', user.id) : `/users/${user.id}/edit`" class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 text-sm">Edit</Link>
+                                    <Link :href="typeof route === 'function' ? route('users.edit', user.id) : `/users/${user.id}/edit`" class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 text-sm">Edit</Link>
 
-                        <button @click="confirmDelete(user)" class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 text-sm">Delete</button>
-                      </div>
+                                    <button @click="confirmDelete(user)" class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 text-sm">Delete</button>
+                                </div>
                     </td>
                   </tr>
                 </template>
 
                 <tr v-else>
-                  <td class="px-6 py-12 text-center text-gray-500" colspan="5">
-                  s   No users found on this page.
-                    <div class="mt-3">
-                      <Link :href="typeof route === 'function' ? route('users.create') : '/users/create'" class="inline-block px-4 py-2 bg-indigo-700 text-white rounded-md text-sm">Create a user</Link>
-                    </div>
-  ci             </td>
-                </tr>
-s           </tbody>
+                                <td class="px-6 py-12 text-center text-gray-500" colspan="5">
+                                    No users found on this page.
+                                    <div class="mt-3">
+                                        <Link :href="typeof route === 'function' ? route('users.create') : '/users/create'" class="inline-block px-4 py-2 bg-indigo-700 text-white rounded-md text-sm">Create a user</Link>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
             </table>
           </div>
 

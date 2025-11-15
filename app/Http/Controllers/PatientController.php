@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Claim; // <-- Keep if used elsewhere
 use App\Models\InsuranceProvider;
 use App\Models\Patient;
+use App\Models\Setting;
 use App\Models\LabOrderResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,8 +56,7 @@ class PatientController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'first_name' => 'required|string|max:100',
-            'last_name' => 'required|string|max:100',
+            'full_name' => 'required|string|max:200',
             'date_of_birth' => 'required|date|before:today',
             'gender' => 'required|string',
             'primary_phone_country_code' => 'required|string|max:5',
@@ -100,14 +100,18 @@ class PatientController extends Controller
             $photoPath = $request->file('photo')->store('patient_photos', 'public');
         }
 
+        $nameParts = explode(' ', $validatedData['full_name'], 2);
+        $firstName = $nameParts[0];
+        $lastName = $nameParts[1] ?? '';
+
         $patient = Patient::create([
-            'first_name' => $validatedData['first_name'],
-            'last_name' => $validatedData['last_name'],
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'date_of_birth' => $validatedData['date_of_birth'],
             'gender' => $validatedData['gender'],
             'primary_phone_country_code' => $countryCode,
             'primary_phone' => $fullPhoneNumber,
-            'email' => $validatedData['email'] ?? null,
+            'email' => 'temp@temp.com',
             'addresses' => $addresses,
             'patient_portal_password_hash' => $defaultPassword,
             'photo_capture_path' => $photoPath,
@@ -117,6 +121,12 @@ class PatientController extends Controller
         ]);
 
         $patient->uhid = 'HMS-A' . str_pad($patient->id, 7, '0', STR_PAD_LEFT);
+
+        $hospitalDomain = Setting::where('key', 'hospital_domain')->first()->value ?? 'hospital.com';
+        $age = \Carbon\Carbon::parse($validatedData['date_of_birth'])->age;
+        $uhidLastThree = substr($patient->uhid, -3);
+        $patient->email = strtolower($firstName) . $uhidLastThree . $age . '@' . $hospitalDomain;
+
         $patient->save();
 
         if (!empty($validatedData['insurance_provider_id']) && !empty($validatedData['policy_number'])) {

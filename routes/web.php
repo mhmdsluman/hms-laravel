@@ -57,8 +57,7 @@ use Illuminate\Support\Facades\Session;
 | be assigned to the "web" middleware group.
 |
 */
-// TEMP debug route - remove after debugging
-Route::get('/debug/patients/search', [App\Http\Controllers\PatientController::class, 'search']);
+// TEMP debug route (removed) - was used during patient search debugging
 
 // Language Switcher Route
 Route::get('language/{locale}', function ($locale) {
@@ -90,7 +89,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Appointments & Vitals
     Route::resource('appointments', AppointmentController::class)->except(['show']);
-    Route::put('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.updateStatus');
+    Route::match(['put', 'patch'], '/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.updateStatus');
     Route::resource('appointments.vitals', VitalController::class)->shallow()->only(['create', 'store']);
 
     // Consultation (Clinical Notes, Orders)
@@ -104,6 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/appointments/{appointment}/generate-bill', [BillController::class, 'store'])->name('billing.store');
     Route::post('/billing/{bill}/payment', [BillController::class, 'recordPayment'])->name('billing.recordPayment');
     Route::post('/billing/{bill}/discount', [BillController::class, 'applyDiscount'])->name('billing.applyDiscount');
+    Route::get('/patients/{patient}/invoice-history', [BillController::class, 'getInvoiceHistory'])->name('patients.invoiceHistory');
 
     // Insurance Policies (Standalone management for a specific patient)
     Route::resource('insurance-policies', InsurancePolicyController::class)->except(['index', 'show']);
@@ -177,6 +177,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('print')->name('print.')->group(function () {
         Route::get('/lab/{labOrder}', [PrintController::class, 'labResult'])->name('labResult');
         Route::get('/bill/{bill}', [PrintController::class, 'billInvoice'])->name('billInvoice');
+        Route::get('/invoices/{ids}', [PrintController::class, 'printInvoices'])->name('invoices');
     });
 
     // Administration Panel

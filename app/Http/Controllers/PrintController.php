@@ -49,4 +49,17 @@ class PrintController extends Controller
 
         return $pdf->stream('invoice-' . $bill->id . '.pdf');
     }
+
+    public function printInvoices($ids)
+    {
+        $billIds = explode(',', $ids);
+        $bills = Bill::with(['patient', 'items.service'])->whereIn('id', $billIds)->get();
+
+        $pdf = Pdf::loadView('reports.invoices', [
+            'bills' => $bills,
+            'title' => 'Invoices',
+        ]);
+
+        return $pdf->stream('invoices.pdf');
+    }
 }

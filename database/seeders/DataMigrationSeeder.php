@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DataMigrationSeeder extends Seeder
 {
@@ -13,7 +14,7 @@ class DataMigrationSeeder extends Seeder
     public function run(): void
     {
         // Migrate data from inventory_items
-        if (DB::schema()->hasTable('inventory_items')) {
+    if (Schema::hasTable('inventory_items')) {
             $items = DB::table('inventory_items')->get();
             foreach ($items as $item) {
                 DB::table('inventory')->insert([
@@ -30,7 +31,7 @@ class DataMigrationSeeder extends Seeder
         }
 
         // Migrate data from lab_inventory_items
-        if (DB::schema()->hasTable('lab_inventory_items')) {
+    if (Schema::hasTable('lab_inventory_items')) {
             $items = DB::table('lab_inventory_items')->get();
             foreach ($items as $item) {
                 DB::table('inventory')->insert([

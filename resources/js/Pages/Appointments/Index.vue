@@ -24,6 +24,15 @@ const form = useForm({
   reason_for_visit: '',
 });
 
+// safeRoute helper (prevents Ziggy runtime throws if a route isn't registered)
+const safeRoute = (name, ...params) => {
+  try {
+    return route(name, ...params);
+  } catch (e) {
+    return null;
+  }
+};
+
 // Modal state
 const showDetailModal = ref(false);
 const selectedAppointment = ref(null);
@@ -52,10 +61,21 @@ watch(
 
     searchDebounce = setTimeout(() => {
       isLoadingSearch.value = true;
+      const url = safeRoute('patients.search') || '/patients/search';
+      // Ask for JSON explicitly and guard against non-array responses
       axios
-        .get(route('patients.search'), { params: { query: q } })
+        .get(url, { params: { query: q }, headers: { Accept: 'application/json' } })
         .then((response) => {
-          patientSearchResults.value = response.data || [];
+          // Debug logging to help diagnose front-end issues
+          console.debug('Patient search response:', { url, status: response.status, dataType: typeof response.data });
+
+          if (Array.isArray(response.data)) {
+            patientSearchResults.value = response.data;
+          } else {
+            // Sometimes an HTML login page or error page may be returned; log and show none
+            console.warn('Patient search returned non-array response; clearing results.', response.data);
+            patientSearchResults.value = [];
+          }
         })
         .catch((error) => {
           console.error('Error searching patients:', error);

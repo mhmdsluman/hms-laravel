@@ -16,15 +16,20 @@ return new class extends Migration
             $table->foreignId('appointment_id')->constrained('appointments')->onDelete('cascade');
             $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
             $table->foreignId('clinician_id')->constrained('users');
-            $table->foreignId('template_id')->nullable()->constrained('templates');
+            // template_id is added in a later migration so we avoid creating a foreign key
+            // here that references a table which may not yet exist when migrations run.
+            // The migration `2025_08_12_223328_add_template_id_to_clinical_notes_table.php`
+            // will add the `template_id` column and constraint after `templates` exists.
 
             $table->longText('notes_content')->nullable();
 
             $table->string('provisional_diagnosis')->nullable();
-            $table->foreignId('provisional_diagnosis_code_id')->nullable()->constrained('diagnosis_codes');
+            // provisional_diagnosis_code_id is added in a later migration so we avoid
+            // creating the FK here which would reference a table created later.
 
             $table->string('final_diagnosis')->nullable();
-            $table->foreignId('final_diagnosis_code_id')->nullable()->constrained('diagnosis_codes');
+            // final_diagnosis_code_id is added in a later migration so we avoid
+            // creating the FK here which would reference a table created later.
 
             $table->timestamps();
         });

@@ -19,5 +19,6 @@ class SettingsSeeder extends Seeder
         Setting::create(['key' => 'hospital_phone', 'value' => '(123) 456-7890']);
         Setting::create(['key' => 'hospital_email', 'value' => 'contact@communitygeneral.com']);
         Setting::create(['key' => 'hospital_logo', 'value' => null]);
+        Setting::create(['key' => 'hospital_domain', 'value' => 'manhalhospital.com']);
     }
 }

@@ -88,11 +88,19 @@ function voidBill() {
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h2 class="font-semibold text-xl text-gray-800 leading-tight">Bill #{{ bill.id }}</h2>
-          <div class="mt-1 text-sm text-gray-500">Patient: {{ bill.patient.full_name }} ({{ bill.patient.patient_no }})</div>
+          <div class="mt-1 text-sm text-gray-500">
+            Patient:
+            <template v-if="bill.patient">
+              {{ bill.patient.full_name }} ({{ bill.patient.patient_no ?? '—' }})
+            </template>
+            <template v-else>
+              —
+            </template>
+          </div>
         </div>
 
         <div class="flex items-center space-x-2">
-          <a :href="route('print.bill-invoice', bill.id)" target="_blank" class="px-3 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700">
+          <a :href="route('print.billInvoice', bill.id)" target="_blank" class="px-3 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700">
             Print Invoice
           </a>
 
