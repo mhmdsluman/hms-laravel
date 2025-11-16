@@ -55,7 +55,7 @@ class Patient extends Authenticatable
      *
      * @var array
      */
-    protected $appends = ['age', 'photo_url', 'age_display']; // <-- ADDED 'age_display'
+    protected $appends = ['age', 'photo_url', 'age_display', 'age_value', 'age_in_days']; // <-- ADDED numeric accessors
 
     // ... existing relationships ...
     public function vitals(): HasMany { return $this->hasMany(Vital::class)->latest(); }
@@ -147,5 +147,27 @@ class Patient extends Authenticatable
         }
 
         return $years . ' ' . ($years === 1 ? 'yr' : 'yrs');
+    }
+
+    /**
+     * Return integer years (floor) for numeric comparisons.
+     */
+    public function getAgeValueAttribute(): ?int
+    {
+        $dob = $this->getAttribute('date_of_birth');
+        if (empty($dob)) return null;
+        $dob = Carbon::parse($dob);
+        return (int) floor($dob->floatDiffInYears(Carbon::now()));
+    }
+
+    /**
+     * Return age in days (integer) for range comparisons that use days.
+     */
+    public function getAgeInDaysAttribute(): ?int
+    {
+        $dob = $this->getAttribute('date_of_birth');
+        if (empty($dob)) return null;
+        $dob = Carbon::parse($dob);
+        return (int) floor($dob->floatDiffInDays(Carbon::now()));
     }
 }

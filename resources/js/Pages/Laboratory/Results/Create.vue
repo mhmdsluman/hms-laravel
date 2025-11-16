@@ -22,8 +22,8 @@ const applicableRange = computed(() => {
     }
 
     return props.orderItem.service.referenceRanges.find(range =>
-        patient.age >= range.age_min &&
-        patient.age <= range.age_max &&
+        (patient.age_in_days ?? 0) >= range.age_min &&
+        (patient.age_in_days ?? 0) <= range.age_max &&
         (range.gender === 'All' || range.gender === patient.gender)
     );
 });
