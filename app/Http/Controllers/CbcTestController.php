@@ -15,19 +15,12 @@ class CbcTestController extends Controller
     {
         $validated = $request->validated();
         $patient = Patient::findOrFail($validated['patient_id']);
-        $calculationResult = CbcCalculator::calculate($validated['values']);
-
-        $flags = CbcRangeMatcher::computeFlagsForTest(
-            $patient,
-            $validated['values'],
-            $calculationResult['calculated']
-        );
 
         $cbcTest = new CbcTest();
         $cbcTest->patient_id = $validated['patient_id'];
         $cbcTest->values = $validated['values'];
-        $cbcTest->calculated = $calculationResult['calculated'];
-        $cbcTest->flags = $flags;
+        $cbcTest->calculated = CbcCalculator::calculate($validated['values'])['calculated'];
+        $cbcTest->flags = CbcRangeMatcher::computeFlagsForTest($patient, $validated['values'], $cbcTest->calculated);
         $cbcTest->save();
 
         return redirect()->back()->with('success', 'CBC Test saved successfully.');
@@ -37,17 +30,10 @@ class CbcTestController extends Controller
     {
         $validated = $request->validated();
         $patient = Patient::findOrFail($cbcTest->patient_id);
-        $calculationResult = CbcCalculator::calculate($validated['values']);
-
-        $flags = CbcRangeMatcher::computeFlagsForTest(
-            $patient,
-            $validated['values'],
-            $calculationResult['calculated']
-        );
 
         $cbcTest->values = $validated['values'];
-        $cbcTest->calculated = $calculationResult['calculated'];
-        $cbcTest->flags = $flags;
+        $cbcTest->calculated = CbcCalculator::calculate($validated['values'])['calculated'];
+        $cbcTest->flags = CbcRangeMatcher::computeFlagsForTest($patient, $validated['values'], $cbcTest->calculated);
         $cbcTest->save();
 
         return redirect()->back()->with('success', 'CBC Test updated successfully.');

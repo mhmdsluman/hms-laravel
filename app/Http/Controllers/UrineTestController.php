@@ -15,19 +15,12 @@ class UrineTestController extends Controller
     {
         $validated = $request->validated();
         $patient = Patient::findOrFail($validated['patient_id']);
-        $calculationResult = UrineCalculator::calculate($validated['values']);
-
-        $flags = UrineRangeMatcher::computeFlagsForTest(
-            $patient,
-            $validated['values'],
-            $calculationResult['calculated']
-        );
 
         $urineTest = new UrineTest();
         $urineTest->patient_id = $validated['patient_id'];
         $urineTest->values = $validated['values'];
-        $urineTest->calculated = $calculationResult['calculated'];
-        $urineTest->flags = $flags;
+        $urineTest->calculated = UrineCalculator::calculate($validated['values'])['calculated'];
+        $urineTest->flags = UrineRangeMatcher::computeFlagsForTest($patient, $validated['values'], $urineTest->calculated);
         $urineTest->save();
 
         return redirect()->back()->with('success', 'Urine Test saved successfully.');
@@ -37,17 +30,10 @@ class UrineTestController extends Controller
     {
         $validated = $request->validated();
         $patient = Patient::findOrFail($urineTest->patient_id);
-        $calculationResult = UrineCalculator::calculate($validated['values']);
-
-        $flags = UrineRangeMatcher::computeFlagsForTest(
-            $patient,
-            $validated['values'],
-            $calculationResult['calculated']
-        );
 
         $urineTest->values = $validated['values'];
-        $urineTest->calculated = $calculationResult['calculated'];
-        $urineTest->flags = $flags;
+        $urineTest->calculated = UrineCalculator::calculate($validated['values'])['calculated'];
+        $urineTest->flags = UrineRangeMatcher::computeFlagsForTest($patient, $validated['values'], $urineTest->calculated);
         $urineTest->save();
 
         return redirect()->back()->with('success', 'Urine Test updated successfully.');
