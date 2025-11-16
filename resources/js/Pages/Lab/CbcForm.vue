@@ -148,25 +148,22 @@ onMounted(() => {
     fetchRanges();
 });
 
-const submit = async () => {
-    isSubmitting.value = true;
-    statusMessage.value = '';
-    try {
-        await axios.post('/cbc-tests', form.data());
-        isSuccess.value = true;
-        statusMessage.value = 'CBC Test saved successfully.';
-        form.reset('values');
-        Object.keys(calculated).forEach(key => delete calculated[key]);
-    } catch (error) {
-        isSuccess.value = false;
-        if (error.response && error.response.data.errors) {
-            statusMessage.value = Object.values(error.response.data.errors).flat().join(' ');
-        } else {
-            statusMessage.value = 'An unexpected error occurred.';
-        }
-    } finally {
-        isSubmitting.value = false;
-    }
+const submit = () => {
+    form.post('/cbc-tests', {
+        onSuccess: () => {
+            form.reset('values');
+            Object.keys(calculated).forEach(key => delete calculated[key]);
+            statusMessage.value = 'CBC Test saved successfully.';
+            isSuccess.value = true;
+        },
+        onError: (errors) => {
+            statusMessage.value = Object.values(errors).flat().join(' ');
+            isSuccess.value = false;
+        },
+        onFinish: () => {
+            isSubmitting.value = false;
+        },
+    });
 };
 </script>
 

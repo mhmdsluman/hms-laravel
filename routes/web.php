@@ -45,6 +45,7 @@ use App\Http\Controllers\TestCatalogueController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VitalController;
 use App\Http\Controllers\CbcTestController;
+use App\Http\Controllers\UrineTestController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -212,6 +213,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // CBC Tests
     Route::post('/cbc-tests', [CbcTestController::class, 'store'])->name('cbc-tests.store');
     Route::put('/cbc-tests/{cbcTest}', [CbcTestController::class, 'update'])->name('cbc-tests.update');
+
+    // Urine Tests
+    Route::post('/urine-tests', [UrineTestController::class, 'store'])->name('urine-tests.store');
+    Route::put('/urine-tests/{urineTest}', [UrineTestController::class, 'update'])->name('urine-tests.update');
 });
 
 // Patient Portal Routes
