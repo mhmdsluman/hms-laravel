@@ -35,7 +35,7 @@
             </tr>
             <tr>
                 <td><strong>Age:</strong></td>
-                <td>{{ $result->orderItem->order->patient->age }} years</td>
+                <td>{{ $result->orderItem->order->patient->age_display ?? ($result->orderItem->order->patient->age_value ? $result->orderItem->order->patient->age_value . ' yrs' : 'N/A') }}</td>
                 <td><strong>Gender:</strong></td>
                 <td>{{ $result->orderItem->order->patient->gender }}</td>
             </tr>
