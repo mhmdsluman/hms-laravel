@@ -206,8 +206,8 @@ const primaryAddress = computed(() => {
                 <div>
                   <div class="text-lg font-semibold">{{ patient.first_name }} {{ patient.last_name }}</div>
                   <div class="text-sm text-gray-500">UHID: <span class="font-mono">{{ patient.uhid }}</span></div>
-                    <div class="mt-2 flex items-center gap-2">
-                    <span class="text-sm px-2 py-1 bg-gray-100 rounded">Age: {{ patient.age_display ?? (patient.age ? patient.age + ' yrs' : 'N/A') }}</span>
+                  <div class="mt-2 flex items-center gap-2">
+                    <span class="text-sm px-2 py-1 bg-gray-100 rounded">Age: {{ patient.age || 'N/A' }}</span>
                     <span class="text-sm px-2 py-1 bg-gray-100 rounded">Gender: {{ patient.gender || 'N/A' }}</span>
                     <span v-if="hasRecentLab || hasRecentRad || hasRecentNursing || hasRecentVitals" class="text-sm px-2 py-1 bg-red-50 text-red-700 rounded">New updates</span>
                   </div>

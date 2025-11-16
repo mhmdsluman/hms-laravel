@@ -8,8 +8,10 @@ class StoreUrineTestRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * @return bool
      */
-    public function authorize(): bool
+    public function authorize()
     {
         return $this->user()->hasRole('lab_technician');
     }
@@ -17,32 +19,15 @@ class StoreUrineTestRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array
      */
-    public function rules(): array
+    public function rules()
     {
         return [
-            'patient_id' => ['required', 'exists:patients,id'],
-            'values.color' => ['nullable', 'string', 'max:255'],
-            'values.appearance' => ['nullable', 'string', 'max:255'],
-            'values.specific_gravity' => ['nullable', 'numeric', 'min:1.000', 'max:1.050'],
-            'values.ph' => ['nullable', 'numeric', 'min:4.0', 'max:9.0'],
-            'values.protein' => ['nullable', 'string', 'max:255'],
-            'values.glucose' => ['nullable', 'string', 'max:255'],
-            'values.ketones' => ['nullable', 'string', 'max:255'],
-            'values.blood' => ['nullable', 'string', 'max:255'],
-            'values.bilirubin' => ['nullable', 'string', 'max:255'],
-            'values.urobilinogen' => ['nullable', 'string', 'max:255'],
-            'values.nitrite' => ['nullable', 'string', 'max:255'],
-            'values.leukocyte_esterase' => ['nullable', 'string', 'max:255'],
-            'values.rbcs' => ['nullable', 'numeric', 'min:0'],
-            'values.wbcs' => ['nullable', 'numeric', 'min:0'],
-            'values.epithelial_cells' => ['nullable', 'numeric', 'min:0'],
-            'values.casts' => ['nullable', 'string', 'max:255'],
-            'values.crystals' => ['nullable', 'string', 'max:255'],
-            'values.bacteria' => ['nullable', 'string', 'max:255'],
-            'values.yeast' => ['nullable', 'string', 'max:255'],
-            'values.mucus' => ['nullable', 'string', 'max:255'],
+            'order_item_id' => ['required', 'exists:order_items,id'],
+            'results' => ['required', 'array'],
+            'results.*.service_id' => ['required', 'exists:services,id'],
+            'results.*.result' => ['required', 'string', 'max:255'],
         ];
     }
 }

@@ -55,7 +55,7 @@ class Patient extends Authenticatable
      *
      * @var array
      */
-    protected $appends = ['age', 'photo_url', 'age_display']; // <-- ADDED 'age_display'
+    protected $appends = ['age', 'photo_url']; // <-- ADDED 'photo_url'
 
     // ... existing relationships ...
     public function vitals(): HasMany { return $this->hasMany(Vital::class)->latest(); }
@@ -111,41 +111,5 @@ class Patient extends Authenticatable
 
         // Default avatar
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->first_name . ' ' . $this->last_name) . '&color=7F9CF5&background=EBF4FF';
-    }
-
-    /**
-     * Human-friendly age display.
-     *
-     * - If less than 1 month -> show days ("10 days")
-     * - If less than 12 months -> show months ("8 months")
-     * - Otherwise show years only ("34 yrs")
-     *
-     * Returns null when date_of_birth is missing so views can fallback to N/A.
-     */
-    public function getAgeDisplayAttribute(): ?string
-    {
-        $dob = $this->getAttribute('date_of_birth');
-
-        if (empty($dob)) {
-            return null;
-        }
-
-        $dob = Carbon::parse($dob);
-        $now = Carbon::now();
-
-    // Use whole integer units for display (no decimals)
-    $days = (int) floor($dob->floatDiffInDays($now));
-    $months = (int) floor($dob->floatDiffInMonths($now));
-    $years = (int) floor($dob->floatDiffInYears($now));
-
-        if ($days < 31) {
-            return $days . ' ' . ($days === 1 ? 'day' : 'days');
-        }
-
-        if ($months < 12) {
-            return $months . ' ' . ($months === 1 ? 'month' : 'months');
-        }
-
-        return $years . ' ' . ($years === 1 ? 'yr' : 'yrs');
     }
 }

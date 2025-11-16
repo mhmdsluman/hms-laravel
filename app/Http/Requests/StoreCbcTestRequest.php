@@ -8,8 +8,10 @@ class StoreCbcTestRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * @return bool
      */
-    public function authorize(): bool
+    public function authorize()
     {
         return $this->user()->hasRole('lab_technician');
     }
@@ -17,24 +19,15 @@ class StoreCbcTestRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array
      */
-    public function rules(): array
+    public function rules()
     {
         return [
-            'patient_id' => ['required','exists:patients,id'],
-            'values.wbc' => ['nullable','numeric','min:0','max:1000'],
-            'values.neutrophils_pct' => ['nullable','numeric','min:0','max:100'],
-            'values.lymphocytes_pct' => ['nullable','numeric','min:0','max:100'],
-            'values.monocytes_pct' => ['nullable','numeric','min:0','max:100'],
-            'values.eosinophils_pct' => ['nullable','numeric','min:0','max:100'],
-            'values.basophils_pct' => ['nullable','numeric','min:0','max:100'],
-            'values.rbc' => ['nullable','numeric','min:0','max:20'],
-            'values.hb' => ['nullable','numeric','min:0','max:30'],
-            'values.hct' => ['nullable','numeric','min:0','max:100'],
-            'values.rdw_cv' => ['nullable','numeric','min:0','max:100'],
-            'values.plt' => ['nullable','numeric','min:0','max:5000'],
-            'values.mpv' => ['nullable','numeric','min:0','max:20'],
+            'order_item_id' => ['required', 'exists:order_items,id'],
+            'results' => ['required', 'array'],
+            'results.*.service_id' => ['required', 'exists:services,id'],
+            'results.*.result' => ['required', 'string', 'max:255'],
         ];
     }
 }

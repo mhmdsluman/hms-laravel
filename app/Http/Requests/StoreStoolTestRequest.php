@@ -24,12 +24,10 @@ class StoreStoolTestRequest extends FormRequest
     public function rules()
     {
         return [
-            'patient_id' => ['required_without:order_id', 'exists:patients,id'],
-            'order_id' => ['required_without:patient_id', 'exists:orders,id'],
+            'order_item_id' => ['required', 'exists:order_items,id'],
             'results' => ['required', 'array'],
-            'results.*.id' => ['sometimes', 'exists:lab_results,id'],
-            'results.*.order_item_id' => ['required_without:results.*.id', 'exists:order_items,id'],
-            'results.*.value' => ['required', 'string', 'max:255'],
+            'results.*.service_id' => ['required', 'exists:services,id'],
+            'results.*.result' => ['required', 'string', 'max:255'],
         ];
     }
 }

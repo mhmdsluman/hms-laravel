@@ -32,8 +32,8 @@ class DatabaseSeeder extends Seeder
             SettingsSeeder::class,
             LabTestsSeeder::class,
             ServicesSeeder::class,
-            CbcParameterRangesSeeder::class,
-            UrineParameterRangesSeeder::class,
+            CbcSeeder::class,
+            UrineSeeder::class,
             StoolAnalysisSeeder::class,
         ]);
     }
