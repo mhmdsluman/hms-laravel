@@ -13,12 +13,91 @@ use App\Http\Controllers\LabInventoryController;
 use App\Services\CbcCalculationService;
 use App\Services\LabResultFlaggingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class LabController extends Controller
 {
-    // ... constructor and other methods
+    protected $labInventoryController;
+
+    public function __construct(LabInventoryController $labInventoryController)
+    {
+        $this->labInventoryController = $labInventoryController;
+    }
+
+    public function index(Request $request): Response
+    {
+        $stats = [
+            'samples_collected_today' => LabSample::whereDate('collected_at', today())->count(),
+            'tests_pending_validation' => LabOrderResult::where('status', 'Preliminary')->count(),
+            'qc_failures' => QcResult::where('in_range', false)->whereDate('created_at', today())->count(),
+        ];
+
+        // Build per-status lists for the laboratory dashboard
+        $labCategoryFilter = function ($query) {
+            $query->where(function ($q) {
+                $added = false;
+                if (Schema::hasColumn('services', 'category')) {
+                    $q->where('category', 'Laboratory')->orWhere('category', 'lab');
+                    $added = true;
+                }
+
+                if (Schema::hasColumn('services', 'department')) {
+                    if ($added) {
+                        $q->orWhere('department', 'Laboratory');
+                    } else {
+                        $q->where('department', 'Laboratory');
+                        $added = true;
+                    }
+                }
+
+                if (! $added) {
+                    $q->where('name', 'like', '%cbc%')
+                      ->orWhere('name', 'like', '%urinalysis%')
+                      ->orWhere('name', 'like', '%stool%')
+                      ->orWhere('name', 'like', '%urine%');
+                }
+            });
+        };
+
+        $pendingLabOrders = OrderItem::whereHas('service', $labCategoryFilter)
+            ->where('status', 'Pending')
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
+        $collectedLabOrders = OrderItem::whereHas('service', $labCategoryFilter)
+            ->where('status', 'Sample Collected')
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
+        $resultsReadyOrders = OrderItem::whereHas('service', $labCategoryFilter)
+            ->where('status', 'Result Ready')
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
+        $completedOrders = OrderItem::whereHas('service', $labCategoryFilter)
+            ->whereHas('labResult', function ($q) {
+                $q->where('status', 'Validated');
+            })
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
+        $recent_activity = LabOrder::with('patient')->latest()->limit(10)->get();
+
+        return Inertia::render('Lab/Dashboard', [
+            'stats' => $stats,
+            'recent_activity' => $recent_activity,
+            'pendingLabOrders' => $pendingLabOrders,
+            'collectedLabOrders' => $collectedLabOrders,
+            'resultsReadyOrders' => $resultsReadyOrders,
+            'completedOrders' => $completedOrders,
+        ]);
+    }
 
     public function storeResult(Request $request, OrderItem $orderItem)
     {
