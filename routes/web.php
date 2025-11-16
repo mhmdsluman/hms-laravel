@@ -44,6 +44,7 @@ use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\TestCatalogueController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VitalController;
+use App\Http\Controllers\CbcTestController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -207,6 +208,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     });
+
+    // CBC Tests
+    Route::post('/cbc-tests', [CbcTestController::class, 'store'])->name('cbc-tests.store');
+    Route::put('/cbc-tests/{cbcTest}', [CbcTestController::class, 'update'])->name('cbc-tests.update');
 });
 
 // Patient Portal Routes
