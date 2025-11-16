@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrderItem;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Patient;
 use App\Models\LabTest;
 use App\Models\LabOrder;
@@ -31,11 +32,71 @@ class LabController extends Controller
             'qc_failures' => QcResult::where('in_range', false)->whereDate('created_at', today())->count(),
         ];
 
+        // Build per-status lists for the laboratory dashboard
+        // Avoid referencing columns that may not exist on all deployments.
+        $labCategoryFilter = function ($query) {
+            $query->where(function ($q) {
+                $added = false;
+                if (Schema::hasColumn('services', 'category')) {
+                    $q->where('category', 'Laboratory')->orWhere('category', 'lab');
+                    $added = true;
+                }
+
+                if (Schema::hasColumn('services', 'department')) {
+                    // if we already added a condition, chain with orWhere, otherwise where
+                    if ($added) {
+                        $q->orWhere('department', 'Laboratory');
+                    } else {
+                        $q->where('department', 'Laboratory');
+                        $added = true;
+                    }
+                }
+
+                // Fallback: if neither column exists, match by name heuristics (best-effort)
+                if (! $added) {
+                    $q->where('name', 'like', '%cbc%')
+                      ->orWhere('name', 'like', '%urinalysis%')
+                      ->orWhere('name', 'like', '%stool%')
+                      ->orWhere('name', 'like', '%urine%');
+                }
+            });
+        };
+
+        $pendingLabOrders = \App\Models\OrderItem::whereHas('service', $labCategoryFilter)
+            ->where('status', 'Pending')
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
+        $collectedLabOrders = \App\Models\OrderItem::whereHas('service', $labCategoryFilter)
+            ->where('status', 'Sample Collected')
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
+        $resultsReadyOrders = \App\Models\OrderItem::whereHas('service', $labCategoryFilter)
+            ->where('status', 'Result Ready')
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
+        $completedOrders = \App\Models\OrderItem::whereHas('service', $labCategoryFilter)
+            ->whereHas('labResult', function ($q) {
+                $q->where('status', 'Validated');
+            })
+            ->with('order.patient', 'service', 'labResult')
+            ->latest()
+            ->get();
+
         $recent_activity = LabOrder::with('patient')->latest()->limit(10)->get();
 
         return Inertia::render('Lab/Dashboard', [
             'stats' => $stats,
             'recent_activity' => $recent_activity,
+            'pendingLabOrders' => $pendingLabOrders,
+            'collectedLabOrders' => $collectedLabOrders,
+            'resultsReadyOrders' => $resultsReadyOrders,
+            'completedOrders' => $completedOrders,
         ]);
     }
 

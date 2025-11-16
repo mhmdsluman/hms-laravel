@@ -116,10 +116,10 @@ class OrderController extends Controller
                 'status'             => 'Pending',
             ]);
 
-            // Create order items and handle inpatient pharmacy auto-MAR population
-            foreach ($validated['service_ids'] as $serviceId) {
+            // Create order items for the expanded services (handles panels -> child tests)
+            foreach ($services as $service) {
                 $item = $order->items()->create([
-                    'service_id'          => $serviceId,
+                    'service_id'          => $service->id,
                     'status'              => 'Pending',
                     // include order id to placer string to reduce collisions
                     'placer_order_number' => 'ORD-' . Str::upper(Str::random(5)) . '-' . $order->id,
@@ -128,7 +128,7 @@ class OrderController extends Controller
                 // Create a billable event for the order item
                 BillableEvent::create([
                     'patient_id' => $appointment->patient_id,
-                    'service_id' => $serviceId,
+                    'service_id' => $service->id,
                     'status'     => 'Pending',
                 ]);
 

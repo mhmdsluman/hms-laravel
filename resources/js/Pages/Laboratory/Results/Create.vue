@@ -60,7 +60,7 @@ const submit = () => {
                     <div class="p-6 bg-white border-b border-gray-200">
                         <div v-if="orderItem.order?.patient" class="mb-4 border-b pb-4">
                             <h3 class="font-semibold">Patient: {{ orderItem.order.patient.first_name }} {{ orderItem.order.patient.last_name }}</h3>
-                            <p class="text-sm text-gray-600">UHID: {{ orderItem.order.patient.uhid }} | Age: {{ orderItem.order.patient.age }} | Gender: {{ orderItem.order.patient.gender }}</p>
+                            <p class="text-sm text-gray-600">UHID: {{ orderItem.order.patient.uhid }} | Age: {{ orderItem.order.patient.age_display ?? (orderItem.order.patient.age ? orderItem.order.patient.age + ' yrs' : 'N/A') }} | Gender: {{ orderItem.order.patient.gender }}</p>
                         </div>
 
                         <form @submit.prevent="submit">
