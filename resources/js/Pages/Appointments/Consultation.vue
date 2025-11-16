@@ -1,11 +1,22 @@
 <script setup>
-// ... existing script setup ...
+// consultation script setup
 import { ref, onMounted, watch, computed } from 'vue';
 
-// ... existing props ...
+// Props expected from the server (appointment page)
+const props = defineProps({
+    appointment: Object,
+    services: { type: Object, default: () => ({}) },
+    errors: Object,
+    auth: Object,
+    ziggy: Object,
+});
+
+// local alias for services (templates/pass-through)
+const services = props.services || {};
 
 const ordersTab = ref('services'); // 'services' or 'pending'
 const serviceCategoryTab = ref('Lab'); // Default to 'Lab'
+const activeTab = ref('orders'); // which main tab is active (e.g., 'orders', 'notes', etc.)
 
 // ... existing refs and forms ...
 
