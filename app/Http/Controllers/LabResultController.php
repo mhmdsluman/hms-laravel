@@ -29,19 +29,17 @@ class LabResultController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-    $orderItem->load(['order.patient', 'service.referenceRanges']);
-    $patient = $orderItem->order->patient;
-    $ageInDays = $patient->date_of_birth ? $patient->date_of_birth->diffInDays(now()) : null;
+        $orderItem->load(['order.patient', 'service.referenceRanges']);
+        $patient = $orderItem->order->patient;
         $service = $orderItem->service;
         $flag = null;
         $referenceRangeText = null;
 
         if (isset($validated['result_numeric'])) {
             $resultValue = (float) $validated['result_numeric'];
-            $matchingRange = $service->referenceRanges->first(function ($range) use ($ageInDays, $patient) {
-                if (is_null($ageInDays)) return false;
-                return $ageInDays >= $range->age_min
-                    && $ageInDays <= $range->age_max
+            $matchingRange = $service->referenceRanges->first(function ($range) use ($patient) {
+                return $patient->age >= $range->age_min
+                    && $patient->age <= $range->age_max
                     && ($range->gender === 'All' || $range->gender === $patient->gender);
             });
 

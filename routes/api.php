@@ -4,7 +4,6 @@ use App\Http\Controllers\Api\V1\FhirDiagnosticReportController;
 use App\Http\Controllers\Api\V1\FhirPatientController;
 use App\Http\Controllers\Api\V1\Hl7AdtController;
 use App\Http\Controllers\Api\V1\Hl7IngestController;
-use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,23 +13,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Group API routes for version 1
 Route::prefix('v1')->group(function () {
-    // ... other routes
+    // HL7 Ingestion Endpoints
+    Route::post('/hl7/ingest', Hl7IngestController::class);
+    Route::post('/hl7/adt', Hl7AdtController::class);
 
-    // Generic Lab Test Ranges
-    Route::get('/lab-test-ranges/{serviceId}', function (Request $request, $serviceId) {
-        $ageInDays = $request->query('age_days');
-        $gender = $request->query('gender');
-
-        $service = Service::with(['referenceRanges' => function ($query) use ($ageInDays, $gender) {
-            $query->where(function ($q) use ($gender) {
-                $q->where('gender', $gender)->orWhere('gender', 'any');
-            })
-            ->where('age_min', '<=', $ageInDays)
-            ->where(function ($q) use ($ageInDays) {
-                $q->whereNull('age_max')->orWhere('age_max', '>=', $ageInDays);
-            });
-        }])->findOrFail($serviceId);
-
-        return $service->referenceRanges->first();
-    })->middleware('auth:sanctum');
+    // FHIR Read Endpoints (require Sanctum auth)
+    Route::middleware('auth:sanctum')->group(function() {
+        Route::get('/fhir/Patient/{patient}', [FhirPatientController::class, 'show'])->name('fhir.patient.show');
+        Route::get('/fhir/DiagnosticReport/{orderItem}', [FhirDiagnosticReportController::class, 'show'])->name('fhir.diagnosticreport.show');
+    });
 });
