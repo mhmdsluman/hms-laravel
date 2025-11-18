@@ -19,7 +19,7 @@
     });
 
     const submit = () => {
-        form.post(route('vitals.store', props.appointment.id));
+        form.post(route('appointments.vitals.store', { appointment: props.appointment.id }));
     };
     </script>
 

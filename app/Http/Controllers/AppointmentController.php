@@ -111,6 +111,10 @@ class AppointmentController extends Controller
             $appointment->bill->update(['status' => 'Void']);
         }
 
+        if ($validated['status'] === 'Completed') {
+            return redirect()->back()->with('success', 'Appointment for ' . $appointment->patient->first_name . ' ' . $appointment->patient->last_name . ' is completed.');
+        }
+
         return redirect()->back()->with('success', 'Appointment status updated.');
     }
 

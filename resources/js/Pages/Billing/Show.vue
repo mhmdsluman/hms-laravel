@@ -39,7 +39,7 @@ function openPaymentModal() {
 
 // Submit payment
 function submitPayment() {
-  paymentForm.post(route('billing.pay', props.bill.id), {
+  paymentForm.post(route('billing.recordPayment', props.bill.id), {
     onStart: () => {},
     onSuccess: () => {
       showPaymentModal.value = false;
@@ -59,7 +59,7 @@ function submitDiscount() {
     return;
   }
 
-  discountForm.post(route('billing.discount', props.bill.id), {
+  discountForm.post(route('billing.applyDiscount', props.bill.id), {
     onStart: () => {},
     onSuccess: () => {
       showDiscountModal.value = false;
@@ -75,7 +75,7 @@ function submitDiscount() {
 // Void bill (admin only)
 function voidBill() {
   if (confirm('Are you sure you want to void this bill?')) {
-    router.delete(route('billing.destroy', props.bill.id));
+    router.delete(route('billing.destroy', { bill: props.bill.id }));
   }
 }
 </script>
@@ -100,7 +100,7 @@ function voidBill() {
         </div>
 
         <div class="flex items-center space-x-2">
-          <a :href="route('print.billInvoice', bill.id)" target="_blank" class="px-3 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700">
+          <a :href="route('print.billInvoice', { bill: bill.id })" target="_blank" class="px-3 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700">
             Print Invoice
           </a>
 
