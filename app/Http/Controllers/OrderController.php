@@ -50,10 +50,10 @@ class OrderController extends Controller
         // Load the selected services
         $services = Service::find($validated['service_ids']);
 
-        // Expand panels into individual tests
+        // Expand panels into individual tests. Prefer lookup by service_id (more robust)
         $finalServiceIds = [];
         foreach ($services as $service) {
-            $labTest = LabTest::where('name', $service->name)->first();
+            $labTest = LabTest::where('service_id', $service->id)->first();
             if ($labTest && $labTest->is_panel) {
                 foreach ($labTest->tests as $childTest) {
                     $finalServiceIds[] = $childTest->service->id;
@@ -62,7 +62,12 @@ class OrderController extends Controller
                 $finalServiceIds[] = $service->id;
             }
         }
-        $services = Service::find($finalServiceIds);
+
+        // Ensure uniqueness and preserve numeric array keys
+        $finalServiceIds = array_values(array_unique($finalServiceIds));
+
+        // Reload the services collection for the final set (used in checks below)
+        $services = Service::whereIn('id', $finalServiceIds)->get();
 
 
         // Restriction check (formulary)
@@ -107,7 +112,7 @@ class OrderController extends Controller
             }
         }
 
-        DB::transaction(function () use ($validated, $appointment, $services) {
+        DB::transaction(function () use ($finalServiceIds, $appointment) {
             // Create the clinical order
             $order = Order::create([
                 'patient_id'         => $appointment->patient_id,
@@ -117,7 +122,7 @@ class OrderController extends Controller
             ]);
 
             // Create order items and handle inpatient pharmacy auto-MAR population
-            foreach ($validated['service_ids'] as $serviceId) {
+            foreach ($finalServiceIds as $serviceId) {
                 $item = $order->items()->create([
                     'service_id'          => $serviceId,
                     'status'              => 'Pending',
@@ -127,14 +132,18 @@ class OrderController extends Controller
 
                 // Create a billable event for the order item
                 BillableEvent::create([
-                    'patient_id' => $appointment->patient_id,
-                    'service_id' => $serviceId,
-                    'status'     => 'Pending',
+                    'patient_id'   => $appointment->patient_id,
+                    'service_id'   => $serviceId,
+                    'order_id'     => $order->id,
+                    'order_item_id'=> $item->id,
+                    'status'       => 'Pending',
                 ]);
 
                 // If the patient is currently admitted and the ordered service is a pharmacy item,
                 // auto-create a medication administration record on the current admission (MAR).
                 $patient = $appointment->patient()->with('currentAdmission')->first();
+                // ensure service relation is available
+                $item->loadMissing('service');
                 if ($patient && $patient->currentAdmission && $item->service && $item->service->department === 'Pharmacy') {
                     // Ensure relationship exists on the admission model
                     if (method_exists($patient->currentAdmission, 'medicationAdministrations')) {

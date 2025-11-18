@@ -76,7 +76,7 @@ watch(search, throttle(function (value) {
                                     <tr v-for="patient in patients.data" :key="patient.id">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ patient.uhid }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.first_name }} {{ patient.last_name }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.age }} yrs</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.age_display || 'N/A' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.gender }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.primary_phone }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

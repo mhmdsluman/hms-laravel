@@ -253,7 +253,10 @@ class LabTestsSeeder extends Seeder
                     break;
             }
 
-            DB::table('lab_tests')->insert($test);
+            // Use updateOrInsert keyed by the generated code to make seeding idempotent
+            DB::table('lab_tests')->updateOrInsert([
+                'code' => $test['code'],
+            ], $test);
         }
 
         // Create panel components entries for a few panels
