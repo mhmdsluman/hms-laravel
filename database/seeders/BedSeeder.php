@@ -13,35 +13,32 @@ class BedSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create beds idempotently using firstOrCreate so we don't attempt to delete
-        // rows that may be referenced by admissions (avoids FK constraint failures).
+        // Clear the table first to avoid duplicates on re-seeding
+        Bed::query()->delete();
 
         // Create beds for General Ward
         for ($i = 1; $i <= 10; $i++) {
-            Bed::firstOrCreate([
-                'bed_number' => 'GW-' . str_pad($i, 3, '0', STR_PAD_LEFT),
-            ], [
+            Bed::create([
                 'ward' => 'General Ward',
+                'bed_number' => 'GW-' . str_pad($i, 3, '0', STR_PAD_LEFT),
                 'status' => 'Available',
             ]);
         }
 
         // Create beds for ICU
         for ($i = 1; $i <= 5; $i++) {
-            Bed::firstOrCreate([
-                'bed_number' => 'ICU-' . str_pad($i, 2, '0', STR_PAD_LEFT),
-            ], [
+            Bed::create([
                 'ward' => 'ICU',
+                'bed_number' => 'ICU-' . str_pad($i, 2, '0', STR_PAD_LEFT),
                 'status' => 'Available',
             ]);
         }
 
         // Create beds for Maternity Ward
         for ($i = 1; $i <= 8; $i++) {
-            Bed::firstOrCreate([
-                'bed_number' => 'MW-' . str_pad($i, 3, '0', STR_PAD_LEFT),
-            ], [
+            Bed::create([
                 'ward' => 'Maternity Ward',
+                'bed_number' => 'MW-' . str_pad($i, 3, '0', STR_PAD_LEFT),
                 'status' => 'Available',
             ]);
         }

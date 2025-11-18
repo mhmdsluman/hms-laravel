@@ -14,13 +14,13 @@ class SettingsSeeder extends Seeder
      */
     public function run()
     {
-        Setting::updateOrCreate(['key' => 'hospital_name'], ['value' => 'Community General Hospital']);
-        Setting::updateOrCreate(['key' => 'hospital_address'], ['value' => '123 Main St, Anytown, USA 12345']);
-        Setting::updateOrCreate(['key' => 'hospital_phone'], ['value' => '(123) 456-7890']);
-        Setting::updateOrCreate(['key' => 'hospital_email'], ['value' => 'contact@communitygeneral.com']);
-        Setting::updateOrCreate(['key' => 'hospital_logo'], ['value' => null]);
-        Setting::updateOrCreate(['key' => 'hospital_domain'], ['value' => 'manhalhospital.com']);
-        Setting::updateOrCreate(['key' => 'last_uhid_char'], ['value' => 'A']);
-        Setting::updateOrCreate(['key' => 'last_uhid_numeric'], ['value' => '0']);
+        Setting::create(['key' => 'hospital_name', 'value' => 'Community General Hospital']);
+        Setting::create(['key' => 'hospital_address', 'value' => '123 Main St, Anytown, USA 12345']);
+        Setting::create(['key' => 'hospital_phone', 'value' => '(123) 456-7890']);
+        Setting::create(['key' => 'hospital_email', 'value' => 'contact@communitygeneral.com']);
+        Setting::create(['key' => 'hospital_logo', 'value' => null]);
+        Setting::create(['key' => 'hospital_domain', 'value' => 'manhalhospital.com']);
+        Setting::create(['key' => 'last_uhid_char', 'value' => 'A']);
+        Setting::create(['key' => 'last_uhid_numeric', 'value' => '0']);
     }
 }

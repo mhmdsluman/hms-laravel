@@ -133,7 +133,7 @@ const formatDateTime = (value) => {
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
               <h3 class="font-semibold text-lg mb-2">Patient Details</h3>
               <p><strong>UHID:</strong> {{ appointment.patient.uhid }}</p>
-              <p class="mt-2 text-sm text-gray-600">Age: {{ appointment.patient.age_display ?? 'N/A' }}</p>
+              <p class="mt-2 text-sm text-gray-600">Age: {{ appointment.patient.age ?? 'N/A' }}</p>
               <p class="mt-1 text-sm text-gray-600">Gender: {{ appointment.patient.gender ?? 'N/A' }}</p>
             </div>
 
