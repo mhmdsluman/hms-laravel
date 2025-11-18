@@ -100,7 +100,7 @@ function voidBill() {
         </div>
 
         <div class="flex items-center space-x-2">
-          <a :href="route('print.billInvoice', { bill: bill.id })" target="_blank" class="px-3 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700">
+          <a v-if="bill && bill.id" :href="(function(){ try { return route('print.billInvoice', { bill: bill.id }) } catch(e){ return '/print/bill/' + bill.id } })()" target="_blank" class="px-3 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700">
             Print Invoice
           </a>
 

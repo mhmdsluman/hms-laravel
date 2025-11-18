@@ -55,7 +55,7 @@ class Patient extends Authenticatable
      *
      * @var array
      */
-    protected $appends = ['age', 'photo_url']; // <-- ADDED 'photo_url'
+    protected $appends = ['age', 'photo_url', 'age_display', 'age_value', 'age_in_days'];
 
     // ... existing relationships ...
     public function vitals(): HasMany { return $this->hasMany(Vital::class)->latest(); }
@@ -97,6 +97,55 @@ class Patient extends Authenticatable
         }
 
         return $days . ($days > 1 ? ' days' : ' day');
+    }
+
+    /**
+     * Human-readable age display following rules:
+     * - years only for >= 12 months
+     * - months only for >= 31 days and < 12 months
+     * - days only for < 31 days
+     */
+    public function getAgeDisplayAttribute(): ?string
+    {
+        $dob = $this->getAttribute('date_of_birth');
+        if (empty($dob)) return null;
+
+        $birthDate = Carbon::parse($dob);
+        $now = Carbon::now();
+
+        $days = $birthDate->diffInDays($now);
+
+        if ($days < 31) {
+            return $days . ' ' . ($days === 1 ? 'day' : 'days');
+        }
+
+        if ($days < 365) {
+            $months = $birthDate->diffInMonths($now);
+            return $months . ' ' . ($months === 1 ? 'month' : 'months');
+        }
+
+        $years = $birthDate->diffInYears($now);
+        return $years . ' ' . ($years === 1 ? 'year' : 'years');
+    }
+
+    /**
+     * Numeric age in whole years (integer)
+     */
+    public function getAgeValueAttribute(): ?int
+    {
+        $dob = $this->getAttribute('date_of_birth');
+        if (empty($dob)) return null;
+        return Carbon::parse($dob)->diffInYears(Carbon::now());
+    }
+
+    /**
+     * Age in days (integer) for precise comparisons in lab ranges
+     */
+    public function getAgeInDaysAttribute(): ?int
+    {
+        $dob = $this->getAttribute('date_of_birth');
+        if (empty($dob)) return null;
+        return Carbon::parse($dob)->diffInDays(Carbon::now());
     }
 
     /**

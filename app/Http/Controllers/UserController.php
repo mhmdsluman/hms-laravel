@@ -16,10 +16,40 @@ class UserController extends Controller
     /**
      * Display a listing of users.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $allowed = ['name', 'email', 'role', 'created_at', 'speciality'];
+        $sort = $request->get('sort', 'created_at');
+        if (! in_array($sort, $allowed)) {
+            $sort = 'created_at';
+        }
+
+        $direction = $request->get('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $perPage = (int) $request->get('perPage', 10);
+
+        $query = User::query();
+
+        if ($q = $request->get('q')) {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%")
+                        ->orWhere('speciality', 'like', "%{$q}%");
+            });
+        }
+
+        $users = $query->orderBy($sort, $direction)
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Users/Index', [
-            'users' => User::latest()->paginate(10),
+            'users' => $users,
+            'filters' => [
+                'sort' => $sort,
+                'direction' => $direction,
+                'perPage' => $perPage,
+                'q' => $request->get('q', ''),
+            ],
         ]);
     }
 

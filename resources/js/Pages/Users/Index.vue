@@ -5,7 +5,8 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
-  users: { type: Object, default: () => ({ data: [], links: [] }) },
+    users: { type: Object, default: () => ({ data: [], links: [] }) },
+    filters: { type: Object, default: () => ({ sort: 'created_at', direction: 'desc', perPage: 10, q: '' }) },
 });
 
 // UI state
@@ -62,12 +63,39 @@ const suggestions = computed(() => {
   return Array.from(new Set(matches)).slice(0, 5);
 });
 
+// sync incoming filters with local controls
+perPage.value = props.filters?.perPage || perPage.value;
+query.value = props.filters?.q || query.value;
+
+const currentSort = computed(() => props.filters?.sort || 'created_at');
+const currentDirection = computed(() => props.filters?.direction || 'desc');
+
+const toggleDirection = (col) => {
+    if (currentSort.value === col) return currentDirection.value === 'asc' ? 'desc' : 'asc';
+    return 'asc';
+};
+
+const sortHref = (col) => {
+    const dir = toggleDirection(col);
+    try {
+        return typeof route === 'function' ? route('users.index', { sort: col, direction: dir, q: query.value, perPage: perPage.value }) : `?sort=${col}&direction=${dir}&q=${encodeURIComponent(query.value)}&perPage=${perPage.value}`;
+    } catch {
+        return `?sort=${col}&direction=${dir}&q=${encodeURIComponent(query.value)}&perPage=${perPage.value}`;
+    }
+};
+
 // map role -> tailwind classes (solid)
 const badgeClassFor = (role) => roleColors[role] || roleColors.Default;
 
 // format date
 const fmtDate = (d) => {
-  try { return new Date(d).toLocaleDateString(); } catch { return d; }
+    try { return new Date(d).toLocaleDateString(); } catch { return d; }
+};
+
+// initials helper for avatar fallback
+const initials = (name) => {
+    if (!name) return 'U';
+    return (name.split(' ').map(n => n[0] || '').join('') || 'U').slice(0,2).toUpperCase();
 };
 
 // Delete handler (confirm + Inertia delete)
@@ -119,8 +147,8 @@ watch(query, () => {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <!-- Controls -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div class="flex items-center gap-3 w-full md:w-auto">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div class="flex items-center gap-3 w-full md:w-auto">
 
             <!-- Enhanced search box -->
             <div class="relative w-full md:w-96">
@@ -140,9 +168,16 @@ watch(query, () => {
                             </div>
             </div>
 
-            <select v-model="roleFilter" class="rounded-lg border px-3 py-2 text-sm bg-white">
-              <option v-for="r in roles" :key="r" :value="r">{{ r === 'all' ? 'All roles' : r.charAt(0).toUpperCase() + r.slice(1) }}</option>
-            </select>
+                        <select v-model="roleFilter" class="rounded-lg border px-3 py-2 text-sm bg-white">
+                            <option v-for="r in roles" :key="r" :value="r">{{ r === 'all' ? 'All roles' : r.charAt(0).toUpperCase() + r.slice(1) }}</option>
+                        </select>
+
+                        <!-- Per-page selector -->
+                        <select v-model="perPage" class="rounded-lg border px-3 py-2 text-sm bg-white">
+                            <option :value="10">10 / page</option>
+                            <option :value="25">25 / page</option>
+                            <option :value="50">50 / page</option>
+                        </select>
           </div>
 
           <div class="flex items-center gap-3">
@@ -165,26 +200,50 @@ watch(query, () => {
           </div>
 
           <div class="overflow-x-auto">
-            <table class="min-w-full text-left">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Name</th>
-                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Email</th>
-                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Role</th>
-                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">Speciality</th>
-                  <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase text-right">Actions</th>
-                </tr>
-              </thead>
+                        <table class="min-w-full text-left divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">
+                                <Link :href="sortHref('name')" class="flex items-center gap-2">
+                                    <span>Name</span>
+                                    <span v-if="currentSort === 'name'" class="text-xs">{{ currentDirection === 'asc' ? '▲' : '▼' }}</span>
+                                </Link>
+                            </th>
+                            <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">
+                                <Link :href="sortHref('email')" class="flex items-center gap-2">
+                                    <span>Email</span>
+                                    <span v-if="currentSort === 'email'" class="text-xs">{{ currentDirection === 'asc' ? '▲' : '▼' }}</span>
+                                </Link>
+                            </th>
+                            <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">
+                                <Link :href="sortHref('role')" class="flex items-center gap-2">
+                                    <span>Role</span>
+                                    <span v-if="currentSort === 'role'" class="text-xs">{{ currentDirection === 'asc' ? '▲' : '▼' }}</span>
+                                </Link>
+                            </th>
+                            <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase">
+                                <Link :href="sortHref('speciality')" class="flex items-center gap-2">
+                                    <span>Speciality</span>
+                                    <span v-if="currentSort === 'speciality'" class="text-xs">{{ currentDirection === 'asc' ? '▲' : '▼' }}</span>
+                                </Link>
+                            </th>
+                            <th class="px-6 py-3 text-xs font-semibold text-gray-600 uppercase text-right">Actions</th>
+                        </tr>
+                    </thead>
 
-              <tbody class="divide-y">
-                <template v-if="filtered.length">
-                  <tr v-for="user in filtered" :key="user.id" class="hover:bg-white">
-                    <td class="px-6 py-4 align-middle">
-                      <div class="flex items-center gap-3">
-                        <!-- START: Updated Photo -->
-                        <img :src="user.photo_url" :alt="user.name" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm">
-                                <!-- END: Updated Photo -->
-                            <div>
+                            <tbody class="bg-white divide-y divide-gray-100">
+                                <template v-if="filtered.length">
+                                    <tr v-for="user in filtered" :key="user.id" class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 align-middle">
+                                            <div class="flex items-center gap-3">
+                                                <!-- Avatar: image or initials fallback -->
+                                                <div v-if="user.photo_url">
+                                                    <img :src="user.photo_url" :alt="user.name" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm">
+                                                </div>
+                                                <div v-else class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700">
+                                                    {{ initials(user.name) }}
+                                                </div>
+                                                <div>
                           <!-- START: Clickable Name -->
                           <Link :href="typeof route === 'function' ? route('users.show', user.id) : `/users/${user.id}`" class="font-medium text-gray-800 hover:text-blue-600 hover:underline">
                                     {{ user.name }}
