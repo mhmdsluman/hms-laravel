@@ -47,26 +47,38 @@ class OrderController extends Controller
             'service_ids.*' => 'required|exists:services,id',
         ]);
 
-        // Load the selected services
-        $services = Service::find($validated['service_ids']);
+        // Load the initial services from the request
+        $initialServices = Service::find($validated['service_ids']);
 
-        // Expand panels into individual tests
+        // --- Panel Expansion Logic ---
         $finalServiceIds = [];
-        foreach ($services as $service) {
+        $panelChildTestNames = [];
+
+        // First pass: identify panels and collect child test names
+        foreach ($initialServices as $service) {
             $labTest = LabTest::where('name', $service->name)->first();
+
             if ($labTest && $labTest->is_panel) {
+                $labTest->load('tests');
                 foreach ($labTest->tests as $childTest) {
-                    $finalServiceIds[] = $childTest->service->id;
+                    $panelChildTestNames[] = $childTest->name;
                 }
             } else {
                 $finalServiceIds[] = $service->id;
             }
         }
-        $services = Service::find($finalServiceIds);
 
+        if (!empty($panelChildTestNames)) {
+            $childServices = Service::whereIn('name', array_unique($panelChildTestNames))->pluck('id')->toArray();
+            $finalServiceIds = array_merge($finalServiceIds, $childServices);
+        }
 
-        // Restriction check (formulary)
-        foreach ($services as $service) {
+        $finalServiceIds = array_unique($finalServiceIds);
+        $servicesToProcess = Service::find($finalServiceIds);
+        // --- End Panel Expansion Logic ---
+
+        // Restriction check (formulary) on the final, expanded list of services
+        foreach ($servicesToProcess as $service) {
             if ($service->formulary_status === 'Restricted') {
                 throw ValidationException::withMessages([
                     'service_ids' => "The medication/service '{$service->name}' is restricted."
@@ -74,13 +86,10 @@ class OrderController extends Controller
             }
         }
 
-        // CDSS Checks (Drug Interactions and Allergies)
+        // CDSS Checks (Drug Interactions and Allergies) on the final, expanded list
         $patient = $appointment->patient;
-        $orderedRxcuis = $services->whereNotNull('rxcui')->pluck('rxcui')->toArray();
+        $orderedRxcuis = $servicesToProcess->whereNotNull('rxcui')->pluck('rxcui')->toArray();
 
-        // Collect patient's currently recorded medications by looking up past order items
-        // that reference services with an RxCUI. Some deployments may not have a dedicated
-        // "medications" relationship on Patient, so we derive medications from order items.
         $patientMedications = OrderItem::whereHas('order', function ($q) use ($patient) {
             $q->where('patient_id', $patient->id);
         })->whereHas('service', function ($q) {
@@ -92,23 +101,18 @@ class OrderController extends Controller
             $interactionResponse = $this->cdss->checkDrugInteractions($allRxcuis);
             if ($interactionResponse->successful() && !empty($interactionResponse->json())) {
                 Log::warning('Drug-drug interactions found for patient ' . $patient->id, $interactionResponse->json());
-                // In a real application, you would display a warning to the user here.
             }
         }
 
-        // Patient allergies are stored as an array (cast on the model). Wrap with collect()
-        // so we always have a Collection and can safely call contains().
         $patientAllergies = collect($patient->allergies ?? []);
-
-        foreach ($services as $service) {
+        foreach ($servicesToProcess as $service) {
             if ($patientAllergies->contains('name', $service->name)) {
                 Log::warning('Patient ' . $patient->id . ' has a known allergy to ' . $service->name);
-                // In a real application, you would display a warning to the user here.
             }
         }
 
-        DB::transaction(function () use ($validated, $appointment, $services) {
-            // Create the clinical order
+        // --- Database Transaction ---
+        DB::transaction(function () use ($appointment, $finalServiceIds) {
             $order = Order::create([
                 'patient_id'         => $appointment->patient_id,
                 'appointment_id'     => $appointment->id,
@@ -116,27 +120,23 @@ class OrderController extends Controller
                 'status'             => 'Pending',
             ]);
 
-            // Create order items and handle inpatient pharmacy auto-MAR population
-            foreach ($validated['service_ids'] as $serviceId) {
+            // CORRECTED LOOP: Iterate over the final, expanded list of service IDs
+            foreach ($finalServiceIds as $serviceId) {
                 $item = $order->items()->create([
                     'service_id'          => $serviceId,
                     'status'              => 'Pending',
-                    // include order id to placer string to reduce collisions
                     'placer_order_number' => 'ORD-' . Str::upper(Str::random(5)) . '-' . $order->id,
                 ]);
 
-                // Create a billable event for the order item
                 BillableEvent::create([
                     'patient_id' => $appointment->patient_id,
                     'service_id' => $serviceId,
                     'status'     => 'Pending',
                 ]);
 
-                // If the patient is currently admitted and the ordered service is a pharmacy item,
-                // auto-create a medication administration record on the current admission (MAR).
+                // Auto-create MAR entry if patient is admitted and service is a pharmacy item
                 $patient = $appointment->patient()->with('currentAdmission')->first();
                 if ($patient && $patient->currentAdmission && $item->service && $item->service->department === 'Pharmacy') {
-                    // Ensure relationship exists on the admission model
                     if (method_exists($patient->currentAdmission, 'medicationAdministrations')) {
                         $patient->currentAdmission->medicationAdministrations()->create([
                             'order_item_id'  => $item->id,

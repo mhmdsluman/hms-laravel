@@ -19,7 +19,8 @@
     });
 
     const submit = () => {
-        form.post(route('vitals.store', props.appointment.id));
+        // Use direct URL to avoid Ziggy route-name mismatches in nested resource configurations
+        form.post(`/appointments/${props.appointment.id}/vitals`);
     };
     </script>
 
